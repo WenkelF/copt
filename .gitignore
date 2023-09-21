@@ -1,0 +1,15 @@
+__pycache_
+.vscode/
+modules/__pycache__
+modules/binder/__pycache__
+modules/dataset/__pycache__
+modules/trainer/__pycache__
+utils/__pycache__
+
+notebooks/
+conductance.ipynb
+
+lightning_logs/
+results/
+combopt/
+__pycache__/

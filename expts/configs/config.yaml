@@ -1,0 +1,86 @@
+# Configuration scaffold
+
+constants:
+  seed: 0
+  device: &device cpu # cpu or cuda
+  data_dir: &data_dir /home/mila/f/frederik.wenkel/scratch/data/comb-opt/
+  save_dir: &save_dir ./results/
+  wandb:
+    name: test
+    project: combopt
+    entity: wenkelf
+
+datamodule:
+  task: &task maxcut
+  data_dir: *data_dir
+  regenerate: false
+  data_kwargs:
+    # from_existing: zinc
+    num_samples: 100
+    n_min: 8
+    n_max: 12
+    p: 0.4
+    supp_matrices: ["gcn"]
+  feat_kwargs:
+    degree:
+      type: deg
+      level: node
+      log_transform: true
+    constant:
+      type: const
+      level: node
+      norm: true
+    # random:
+    #   level: node
+    #   type: dirac # dirac or gaussian
+    # diffusion:
+    #   level: node
+    #   scales: [1, 2, 4]
+  train_ds_kwargs:
+    start: 0
+    end: 80
+  valid_ds_kwargs:
+    start: 80
+    end: 100
+  batch_size_train: 32
+  batch_size_valid: 20
+
+architecture:
+  task: *task
+  gnn_kwargs:
+    gat:
+      type: gat
+      hidden_dim: 32
+      num_heads_list: [2,2]
+      output_dim: 1
+      activation_att: relu
+      activation: elu
+      activation_last: none
+  head_kwargs:
+    pool: none
+    type: mlp
+    hidden_dims: [16]
+    out_dim: 1
+
+training:
+  optimizer_kwargs:
+    type: adam
+    lr: 0.01
+    weight_decay: 0.0005
+  scheduler_kwargs:
+    step_size: 100
+    gamma: 0.1
+  train_kwargs:
+    accelerator: *device
+    min_epochs: 2
+    max_epochs: 10
+    check_val_every_n_epoch: 2
+    precision: 32-true
+    # stopping_patience: 10
+    # valid_interval: 2
+    # grad: false
+    # output_model: best # best or last
+    # save_dir: *save_dir
+
+    
+
