@@ -13,7 +13,7 @@ from modules.config._loader import (
         load_trainer,
 )
 
-from utils import set_seed, maxcut_loss, maxcut_mae
+from utils import set_seed
 
 
 def main(cfg):

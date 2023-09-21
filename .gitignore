@@ -13,3 +13,5 @@ lightning_logs/
 results/
 combopt/
 __pycache__/
+wandb/
+combopt/
