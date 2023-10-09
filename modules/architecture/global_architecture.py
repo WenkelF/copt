@@ -4,9 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from modules.architecture.layers import GNN_layer, GAT_layer, hybrid_layer, hybrid_layer_pre, reweighting_layer
-
-from modules.utils.spaces import GNN_MODEL_DICT, LAST_ACTIVATION_DICT
+from modules.utils.spaces import GNN_MODEL_DICT, LAST_ACTIVATION_DICT, LAST_NORMALIZATION_DICT
 
 
 class FullGraphNetwork(nn.Module):
@@ -18,6 +16,8 @@ class FullGraphNetwork(nn.Module):
         head_kwargs: Dict[str, Any],
     ) -> nn.Module():
         super().__init__()   
+
+        self.norm = nn.LayerNorm(input_dim)
 
         self.gnn = nn.ModuleDict()
 
@@ -34,7 +34,11 @@ class FullGraphNetwork(nn.Module):
 
         self.last_activation = LAST_ACTIVATION_DICT[task]
 
+        self.last_norm = LAST_NORMALIZATION_DICT[task]
+
     def forward(self, data):
+
+        data['x'] = self.norm(data['x'])
 
         for module in self.gnn.values():
             data = module(data)
@@ -44,6 +48,10 @@ class FullGraphNetwork(nn.Module):
         if self.pooling_operation is not None:
             out = self.pooling_operation(out, data)
 
-        out = self.last_activation(out)
+        if self.last_activation is not None:
+            out = self.last_activation(out)
+        
+        if self.last_norm is not None:
+            out = self.last_norm(out, data)
 
         return out

@@ -7,62 +7,73 @@ import networkx as nx
 import dwave_networkx as dnx
 import dimod
 
-from utils import get_gcn_matrix
+from torch_geometric.datasets import TUDataset
+from torch_geometric.utils import to_networkx
+
+from utils import get_gcn_matrix, get_sct_matrix, get_res_matrix
 
 
-def generate_dataset(
-    name: str,
+def generate_sample(
+    task: str,
     data_kwargs: Dict[str, Any],
-    feat_kwargs: Dict[str, Any]
-) -> Tuple[Union[Dict[str, List], List]]:
-
-
-    samples = []
-    for _ in range(data_kwargs["num_samples"]):
-
-        if name == 'maxcut':
-            samples.append(generate_maxcut_sample(data_kwargs, feat_kwargs))
-
-        else:
-            raise NotImplementedError("Unknown dataset name.")
-
-    return samples
-
-
-def generate_maxcut_sample(
-    data_kwargs: Dict[str, Any],
-    feat_kwargs: Dict[str, Any]
+    feat_kwargs: Dict[str, Any],
+    base_graph: nx.Graph = None,
+    base_target: Dict[str, Any] = None,
+    label: bool = False,
 ) -> Dict[str, Any]:
     
-    # Sample graph
-    sampler = dimod.SimulatedAnnealingSampler()
-
-    n = np.random.randint(data_kwargs["n_min"], data_kwargs["n_max"]+1)
-    g = nx.fast_gnp_random_graph(n, p=data_kwargs["p"])
-    while not nx.is_connected(g):
+    g, target = base_graph, base_target
+    
+    if g is None:
+        n = np.random.randint(data_kwargs["n_min"], data_kwargs["n_max"]+1)
         g = nx.fast_gnp_random_graph(n, p=data_kwargs["p"])
+        while not nx.is_connected(g):
+            g = nx.fast_gnp_random_graph(n, p=data_kwargs["p"])
 
-    # Derive adjacency matrix and target (cut)
+    if isinstance(g, nx.DiGraph):
+        g = g.to_undirected()
+
+    # Derive adjacency matrix
     adj = torch.from_numpy(nx.to_numpy_array(g))
     num_nodes = adj.size(0)
-    cut = dnx.maximum_cut(g, sampler)
-    cut_size = max(len(cut), n - len(cut))
-    cut_onehot = torch.zeros((num_nodes, 1), dtype=torch.int)
-    cut_onehot[torch.tensor(list(cut))] = 1
 
-    sample ={
-        "adj": adj,
-        "num_nodes": num_nodes,
-        "target": cut_size,
-        "cut_onehot": cut_onehot,
-    }
+    sample = {
+            "adj": adj,
+            "num_nodes": num_nodes,
+        }
 
     # Compute support matrices
     for type in data_kwargs["supp_matrices"]:
         sample.update(generate_supp_matrix(adj, type))
 
+    # Compute node features
     for this_name, this_kwargs in feat_kwargs.items():
         sample.update(generate_features(this_name, g, adj, this_kwargs))
+    
+    # Compute label (if desired)
+    if label:
+        
+        if target is not None:
+            pass
+
+        elif task == "maxcut":
+            cut = dnx.maximum_cut(g, dimod.SimulatedAnnealingSampler())
+            cut_size = max(len(cut), n - len(cut))
+            cut_binary = torch.zeros((num_nodes, 1), dtype=torch.int)
+            cut_binary[torch.tensor(list(cut))] = 1
+
+            target = {
+                "cut_size": cut_size,  
+                "cut_binary": cut_binary,
+            }
+
+        elif task == "maxclique":
+            target = {"mc_size": max(len(clique) for clique in nx.find_cliques(g))}
+
+        else:
+            raise NotImplementedError("Unknown task name.")
+        
+        sample.update(target)
 
     return sample
 
@@ -74,7 +85,10 @@ def generate_supp_matrix(
     
     if type == "gcn":
         supp_matrix = get_gcn_matrix(adj, sparse=False)
-    
+    elif type == "sct":
+        supp_matrix = get_sct_matrix(adj, sparse=False)
+    elif type == "res":
+        supp_matrix = get_res_matrix(adj, sparse=False)
     else:
         raise NotImplementedError("Unknown support matrix type.")
     
@@ -83,7 +97,7 @@ def generate_supp_matrix(
 
 def generate_features(
     name: str,
-    graph: nx.Graph,
+    g: nx.Graph,
     adj: torch.Tensor,
     kwargs: Dict[str, Any]
 ) -> Dict[str, torch.Tensor]:
@@ -93,6 +107,15 @@ def generate_features(
 
     if type == 'deg':
         feat, in_level = compute_degrees(adj, kwargs['log_transform'])
+
+    elif type == 'ecc':
+        feat, in_level = compute_eccentricity(g)
+
+    elif type == 'clu':
+        feat, in_level = compute_cluster_coefficient(g)
+
+    elif type == 'tri':
+        feat, in_level = compute_triangle_count(g)
 
     elif type == 'const':
         feat, in_level = set_constant_feat(adj, kwargs['norm'])
@@ -124,6 +147,63 @@ def compute_degrees(
     if log_transform:
         feat = torch.log(feat)
 
+    return feat, base_level
+
+
+def compute_eccentricity(
+    graph: nx.Graph,
+) -> Tuple[List[torch.Tensor], str]:
+    """
+    Compute node degrees.
+
+    Parameters:
+        
+    Returns:
+
+    """
+
+    base_level = 'node'
+
+    feat = torch.Tensor(list(nx.eccentricity(graph).values())).unsqueeze(-1)
+    
+    return feat, base_level
+
+
+def compute_cluster_coefficient(
+    graph: nx.Graph,
+) -> Tuple[List[torch.Tensor], str]:
+    """
+    Compute node degrees.
+
+    Parameters:
+        
+    Returns:
+
+    """
+
+    base_level = 'node'
+
+    feat = torch.Tensor(list(nx.clustering(graph).values())).unsqueeze(-1)
+    
+    return feat, base_level
+
+
+def compute_triangle_count(
+    graph: nx.Graph,
+) -> Tuple[List[torch.Tensor], str]:
+    """
+    Compute node degrees.
+
+    Parameters:
+        
+    Returns:
+
+    """
+
+    base_level = 'node'
+
+    feat = torch.Tensor(list(nx.triangles(graph).values())).unsqueeze(-1)
+    
     return feat, base_level
 
 

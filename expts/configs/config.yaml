@@ -11,21 +11,30 @@ constants:
     entity: wenkelf
 
 datamodule:
-  task: &task maxcut
+  task: &task maxclique
   data_dir: *data_dir
-  regenerate: false
+  regenerate: true
   data_kwargs:
-    # from_existing: zinc
-    num_samples: 100
-    n_min: 8
-    n_max: 12
-    p: 0.4
+    from_existing: imdb
+    num_samples: 10
+    # n_min: 8
+    # n_max: 12
+    # p: 0.4
     supp_matrices: ["gcn"]
   feat_kwargs:
     degree:
       type: deg
       level: node
       log_transform: true
+    eccentricity:
+      type: ecc
+      level: node
+    cluster_coefficent:
+      type: clu
+      level: node
+    triangle_count:
+      type: tri
+      level: node
     constant:
       type: const
       level: node
@@ -37,13 +46,14 @@ datamodule:
     #   level: node
     #   scales: [1, 2, 4]
   train_ds_kwargs:
-    start: 0
-    end: 80
+    frac: 0.8
+    label: false
   valid_ds_kwargs:
-    start: 80
-    end: 100
-  batch_size_train: 32
-  batch_size_valid: 20
+    frac: 0.2
+    label: true
+  test_ds_kwargs: null
+  batch_size_train: 64
+  batch_size_valid: 64
 
 architecture:
   task: *task
@@ -73,8 +83,8 @@ training:
   train_kwargs:
     accelerator: *device
     min_epochs: 2
-    max_epochs: 10
-    check_val_every_n_epoch: 2
+    max_epochs: 100
+    check_val_every_n_epoch: 1
     precision: 32-true
     # stopping_patience: 10
     # valid_interval: 2

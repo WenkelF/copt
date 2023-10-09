@@ -14,10 +14,11 @@ def collate_fn(batch):
         if key.startswith("node_"):
             shape = (batch_size, max_num_nodes, batch[0][key].size(-1))
             padded_batch[key] = torch.zeros(shape)
+            # padded_batch[key] = torch.full(shape, float('nan'))
             for idx, num_nodes in enumerate(num_nodes_list):
                 padded_batch[key][idx, :num_nodes] = batch[idx][key]
 
-        if key == 'cut_onehot':
+        if key == 'cut_binary':
             shape = (batch_size, max_num_nodes, batch[0][key].size(-1))
             padded_batch[key] = torch.full(shape, float('nan'))
             for idx, num_nodes in enumerate(num_nodes_list):
@@ -30,8 +31,8 @@ def collate_fn(batch):
             for idx, num_nodes in enumerate(num_nodes_list):
                 padded_batch[key][idx,:num_nodes,:num_nodes] = batch[idx][key]
         
-        elif key in ['target', 'num_nodes']:
-            padded_batch[key] = torch.Tensor([batch[idx][key] for idx in range(batch_size)])
+        elif key in ['mc_size', 'cut_size', 'num_nodes']:
+            padded_batch[key] = torch.Tensor([batch[idx][key] for idx in range(batch_size)]).to(torch.uint8)
         
         else:
             pass

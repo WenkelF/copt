@@ -11,7 +11,7 @@ ACTIVATION_DICT = {
 }
 
 
-class GNN_layer(nn.Module):
+class GNNLayer(nn.Module):
     def __init__(
             self,
             input_dim: int,
@@ -24,7 +24,7 @@ class GNN_layer(nn.Module):
 
         self.dropout = nn.Dropout(p=dropout)
         self.linear = nn.Linear(input_dim, output_dim, bias=False)
-        activation = ACTIVATION_DICT[activation]
+        self.activation = ACTIVATION_DICT[activation]
 
 
         if bias:
@@ -41,7 +41,7 @@ class GNN_layer(nn.Module):
         x = self.linear(x)
 
         # Message passing step
-        x = torch.spmm(supp_matrix, x)
+        x = torch.matmul(supp_matrix, x)
 
         # Bias
         if self.bias is not None:
@@ -54,7 +54,7 @@ class GNN_layer(nn.Module):
         return x
     
 
-class GAT_layer(nn.Module):
+class GATLayer(nn.Module):
     def __init__(
             self,
             input_dim: int,
@@ -156,7 +156,7 @@ class GAT_layer(nn.Module):
             return x
 
 
-class hybrid_layer(nn.Module):
+class HYBLayer(nn.Module):
     def __init__(
             self,
             input_dim: int,
@@ -218,7 +218,7 @@ class hybrid_layer(nn.Module):
         return x
 
 
-class hybrid_layer_pre(nn.Module):
+class HYBLayer_pre(nn.Module):
     def __init__(
             self,
             input_dim: int,
@@ -273,7 +273,7 @@ class hybrid_layer_pre(nn.Module):
         return x
 
 
-class reweighting_layer(nn.Module):
+class RWLayer(nn.Module):
     def __init__(
             self,
             input_dim: int,

@@ -1,4 +1,27 @@
+from typing import Union, Tuple, List, Dict, Any
+
 import torch
+
+
+class Loss:
+    def __init__(
+        self,
+        task: str,
+        kwargs: Dict[str, Any] = None
+    ):
+
+        if task == 'maxclique':
+            self.loss_fn = lambda output, data: maxclique_loss(output, data, **kwargs)
+            self.decoder = maxclique_decoder
+        elif task == 'maxcut':
+            self.loss_fn = lambda output, data: maxcut_loss(output, data)
+            self.decoder = None
+        else:
+            raise ValueError(f"Invalid task: {task}")
+
+    def loss(self, output, data):
+
+        return self.loss_fn(output, data)
 
 
 def accuracy(output, target):
@@ -6,28 +29,43 @@ def accuracy(output, target):
     return torch.mean((output.argmax(-1) == target).float())
 
 
-def maxclique_loss(output, adj, beta):
+def maxclique_loss(output, data, beta=0.1):
+
+    adj = data.get('adj')
 
     loss1 = torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output))
     loss2 = output.sum() ** 2 - loss1 - torch.sum(output ** 2)
 
-    return - loss1 + beta * loss2
+    return - loss1.sum() + beta * loss2.sum()
 
 
-def maxclique_decoder(output, adj, dec_length):
+def maxclique_ratio(output, data, dec_length=300):
 
-    order = torch.argsort(output)
+    adj = data.get('adj')
+    num_nodes = data.get('num_nodes')
+    c = maxclique_decoder(output, adj, num_nodes, dec_length=dec_length)
+
+    target = data.get('mc_size')
+
+    return torch.mean(c.sum(-1) / target)
+
+
+def maxclique_decoder(output, adj, num_nodes, dec_length=300):
+
+    order = [torch.argsort(output[sample_idx][:num_nodes[sample_idx]], dim=0, descending=True) for sample_idx in range(output.size(0))]
     c = torch.zeros_like(output)
-    c[order[0]] = 1
 
-    for i in range(1, dec_length):
-        c[order[i]] = 1
+    for sample_idx in range(output.size(0)):
+        c[sample_idx][order[sample_idx][0]] = 1
 
-        cTWc = torch.matmul(c.transpose(-1, -2), torch.matmul(adj, c))
-        if c.sum() ** 2 - cTWc - torch.sum(c ** 2) != 0:
-            c[order[i]] = 0
+        for i in range(1, min(dec_length, num_nodes[sample_idx])):
+            c[sample_idx][order[sample_idx][i]] = 1
 
-    return c
+            cTWc = torch.matmul(c[sample_idx].transpose(-1, -2), torch.matmul(adj[sample_idx], c[sample_idx]))
+            if c[sample_idx].sum() ** 2 - cTWc - torch.sum(c[sample_idx] ** 2) != 0:
+                c[sample_idx][order[sample_idx][i]] = 0
+
+    return c.squeeze(-1)
 
 
 def maxbipartite_loss(output, adj, beta):
@@ -62,7 +100,7 @@ def maxcut_mae(output, data):
 
 def maxcut_acc(output, data):
 
-    target = data['cut_onehot']
+    target = data['cut_binary']
 
     label = (output > 0.5).float()
 

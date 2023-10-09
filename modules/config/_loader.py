@@ -7,6 +7,8 @@ from modules.trainer.predictor import PredictorModule
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
+from functools import partial
+
 
 def load_datamodule(cfg):
 
@@ -19,11 +21,19 @@ def load_datamodule(cfg):
 def load_architecture(cfg, input_dim):
 
     cfg_arch = cfg["architecture"]
+    loss_kwargs = cfg_arch.pop("loss_kwargs", {})
+    eval_kwargs = cfg_arch.pop("eval_kwargs", {})
 
     task = cfg_arch.get("task")
 
+    # Loss function
     loss_func = LOSS_FUNCTION_DICT[task]
+    loss_func = partial(loss_func, **loss_kwargs)
+
+    # Eval function
     eval_func_dict = EVAL_FUNCTION_DICT[task]
+    for key, eval_func in eval_func_dict.items():
+        eval_func_dict[key] = partial(eval_func, **eval_kwargs.get(key, {}))
     
     model = FullGraphNetwork(input_dim, **cfg_arch)
 
