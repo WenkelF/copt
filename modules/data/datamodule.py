@@ -56,7 +56,7 @@ class DataModule(LightningDataModule):
 
         self.dataset = PygDataset if backend == "pyg" else Dataset
         self.dataloader = PygDataLoader if backend == "pyg" else DataLoader
-        self.collate_fn = collate_fn_pyg if backend == "pyg" else collate_fn
+        self.collate_fn = None if backend == "pyg" else collate_fn
 
 
     def prepare_data(self) -> None:
@@ -214,8 +214,21 @@ class DataModule(LightningDataModule):
     def get_dataset(self, step: str):
         dataset = self.datasets[step]
 
+        if self.backend == "pyg":
+            for sample in self.datasets[step]:
+                sample_keys = list(sample.keys()).copy()
+                feat = [sample.pop(key) for key in sample_keys if key.startswith("node_")]
+                sample["x"] = torch.cat(feat, dim=-1)
+            dataset = [Data.from_dict(sample) for sample in self.datasets[step]]
+
         # if self.backend == "pyg":
-        #     dataset = [Data.from_dict(sample) for sample in self.datasets[step]]
+        #     adj_list = []
+        #     data_list = []
+        #     for sample in self.datasets[step]:
+        #         adj_list.append(sample.pop("adj_mat"))
+        #         data_list.append(Data.from_dict(sample))
+
+        #     dataset = (adj_list, data_list)
 
         return self.dataset(dataset)
 

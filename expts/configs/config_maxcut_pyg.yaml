@@ -16,7 +16,7 @@ datamodule:
   regenerate: false
   backend: pyg
   data_kwargs:
-    num_samples: 100
+    num_samples: 10000
     n_min: 8
     n_max: 15
     p: 0.4
@@ -54,17 +54,17 @@ datamodule:
 architecture:
   task: *task
   gnn_kwargs:
-    scgcn:
-      type: scgcn
+    gcn:
+      type: pyg:gcn
       hidden_dim: 32
-      num_layers: 1
-      output_dim: 32
+      num_layers: 4
+      output_dim: 1
       last_activation: none
-  head_kwargs:
-    hidden_dim: 32
-    num_layers: 2
-    output_dim: 1
-    last_activation: none
+  head_kwargs: null
+    # hidden_dim: 32
+    # num_layers: 2
+    # output_dim: 1
+    # last_activation: none
 
 training:
   optimizer_kwargs:

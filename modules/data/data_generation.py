@@ -32,18 +32,20 @@ def generate_sample(
     if isinstance(g, nx.DiGraph):
         g = g.to_undirected()
 
-    # Derive adjacency matrix
+    # # Derive adjacency matrix
     adj = torch.from_numpy(nx.to_numpy_array(g))
     num_nodes = adj.size(0)
 
     sample = {
-        "adj_mat": adj,
+        # "adj_mat": adj,
         "num_nodes": num_nodes,
     }
 
     # Compute support matrices
     for type in data_kwargs["supp_matrices"]:
-        if type == 'edge_index':
+        if type == 'adj':
+            sample.update({"adj_mat": adj})
+        elif type == 'edge_index':
             sample.update({"edge_index": from_networkx(g).edge_index})
         else:
             sample.update(generate_supp_matrix(adj, type))

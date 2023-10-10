@@ -2,6 +2,9 @@ from typing import Union, Tuple, List, Dict, Any
 
 import torch
 
+from torch_geometric.data import Batch
+from torch_geometric.utils import to_dense_adj, unbatch, unbatch_edge_index #, to_torch_sparse_tensor
+
 
 def accuracy(output, target):
 
@@ -58,12 +61,15 @@ def maxbipartite_decoder(output, adj, dec_length):
 
 
 def maxcut_loss(output, data):
-
-    adj = data['adj']
-
     output = (output - 0.5) * 2
 
-    return torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).mean()
+    if isinstance(data, Batch):
+        adj = to_dense_adj(data['edge_index']).double()
+        return torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)) / len(data.batch.unique())
+
+    else:
+        adj = data['adj_mat']
+        return torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).mean()
 
 
 # def maxcut_mae(output, data):
@@ -81,24 +87,52 @@ def maxcut_loss(output, data):
 
 def maxcut_mae(output, data):
 
-    adj = data['adj']
-    adj_weight = adj.sum(-1).sum(-1)
-    target_size = adj_weight.clone()
-    pred_size = adj_weight.clone()
-
+    output = (output > 0.5).double()
     target = torch.nan_to_num(data['cut_binary'])
-    target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
-    target = 1 - target
-    target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
-    target_size /= 2
 
-    output = (output > 0.5).float()
-    pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
-    output = 1 - output
-    pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
-    pred_size /= 2
+    if isinstance(data, Batch):
+        edge_index_list = unbatch_edge_index(data.edge_index, data.batch)
+        output_list = unbatch(output, data.batch)
+        target_list = unbatch(target, data.batch)
+        abs_error_list = []
+        for edge_index, output, target in zip(edge_index_list, output_list, target_list):
+            target = target.double()
+            adj = to_dense_adj(edge_index).double()
+            adj_weight = adj.sum()
+            target_size = adj_weight.clone()
+            pred_size = adj_weight.clone()
+            
+            target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
+            target = 1 - target
+            target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
+            target_size /= 2
+        
+            pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
+            output = 1 - output
+            pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
+            pred_size /= 2
 
-    return torch.mean(torch.abs(pred_size - target_size))
+            abs_error_list.append(torch.abs(pred_size - target_size))
+        
+        return torch.mean(torch.Tensor(abs_error_list))
+    
+    else:
+        adj = data['adj_mat']
+        adj_weight = adj.sum(-1).sum(-1)
+        target_size = adj_weight.clone()
+        pred_size = adj_weight.clone()
+
+        target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
+        target = 1 - target
+        target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
+        target_size /= 2
+
+        pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
+        output = 1 - output
+        pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
+        pred_size /= 2
+
+        return torch.mean(torch.abs(pred_size - target_size))
 
 
 def maxcut_p_correct(output, data):
