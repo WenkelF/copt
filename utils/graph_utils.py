@@ -47,7 +47,7 @@ def get_res_matrix(adj, alpha=0.5, sparse=True):
 def diffusion(x, supp_mat, num_steps):
 
     for _ in range(num_steps):
-        x = torch.spmm(supp_mat, x)
+        x = torch.matmul(supp_mat, x)
 
     return x
 

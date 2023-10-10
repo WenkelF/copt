@@ -19,7 +19,7 @@ datamodule:
     n_min: 8
     n_max: 15
     p: 0.4
-    supp_matrices: ["gcn"]
+    supp_matrices: ["gcn", "sct"]
   feat_kwargs:
     degree:
       type: deg
@@ -53,24 +53,25 @@ datamodule:
 architecture:
   task: *task
   gnn_kwargs:
-    gcn:
-      type: gcn
-      output_dim: 1
-      hidden_dim: 64
-      num_layers: 4
+    scgcn:
+      type: scgcn
+      hidden_dim: 32
+      num_layers: 1
+      output_dim: 32
+      last_activation: none
   head_kwargs:
-    pool: none
-    type: mlp
-    hidden_dims: [16]
-    out_dim: 1
+    hidden_dim: 32
+    num_layers: 2
+    output_dim: 1
+    last_activation: none
 
 training:
   optimizer_kwargs:
     type: adam
-    lr: 0.001
+    lr: 0.0005
     weight_decay: 0.0005
   scheduler_kwargs:
-    step_size: 120
+    step_size: 300
     gamma: 0.1
   train_kwargs:
     accelerator: *device

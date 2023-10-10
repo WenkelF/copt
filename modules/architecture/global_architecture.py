@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from modules.utils.spaces import GNN_MODEL_DICT, LAST_ACTIVATION_DICT, LAST_NORMALIZATION_DICT
+from modules.architecture.models import MLP 
 
 
 class FullGraphNetwork(nn.Module):
@@ -29,6 +30,8 @@ class FullGraphNetwork(nn.Module):
             # define new input_dim as last output_dim
 
         self.head = None
+        if head_kwargs is not None:
+           self.head = MLP(**head_kwargs, input_dim=list(gnn_kwargs.values())[-1]['output_dim'])
 
         self.pooling_operation = None
 
@@ -47,6 +50,9 @@ class FullGraphNetwork(nn.Module):
 
         if self.pooling_operation is not None:
             out = self.pooling_operation(out, data)
+
+        if self.head is not None:
+            out = self.head(out)
 
         if self.last_activation is not None:
             out = self.last_activation(out)

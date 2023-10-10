@@ -6,6 +6,8 @@ import torch.nn.functional as F
 
 from modules.architecture.layers import GNNLayer, GATLayer, HYBLayer, HYBLayer_pre, RWLayer
 
+from modules.architecture.layers import ACTIVATION_DICT
+
 
 class GCN(nn.Module):
     def __init__(
@@ -110,7 +112,8 @@ class ScGCN(nn.Module):
             config: list = [-1, -2, -3, 1, 2, 3],
             bias: bool = True,
             dropout: float = 0.,
-            activation = nn.ReLU(),
+            activation = 'relu',
+            last_activation = 'none',
     ):
         super().__init__()
 
@@ -120,7 +123,7 @@ class ScGCN(nn.Module):
             self.hyb_layers.append(HYBLayer(temp_dim, hidden_dim, config, bias, dropout, activation))
             temp_dim = hidden_dim * len(config)
 
-        self.res_layer = GNNLayer(temp_dim, output_dim, bias, dropout, activation=None)
+        self.res_layer = GNNLayer(temp_dim, output_dim, bias, dropout, activation=last_activation)
 
     def forward(self, data):
 
@@ -131,7 +134,7 @@ class ScGCN(nn.Module):
         for hyb_layer in self.hyb_layers:
             x = hyb_layer(x, gcn_mat, sct_mat)
 
-        x = self.res_layer(x, data.res_mat)
+        x = self.res_layer(x, gcn_mat)
 
         data['x'] = x
 
@@ -220,3 +223,48 @@ class ScGCN_rwg(nn.Module):
         x = self.res_layer(x, data.res_mat)
 
         return F.softmax(x, dim=-1)
+    
+
+class MLP(nn.Module):
+    def __init__(
+            self,
+            input_dim: int,
+            output_dim: int,
+            hidden_dim: int = 16,
+            num_layers: int = 2,
+            bias: bool = True,
+            dropout: float = 0.,
+            activation = 'relu',
+            last_activation = 'none',
+    ):
+        super().__init__()
+
+        hidden_dim_list = [hidden_dim] * (num_layers - 1)
+
+        self.layers = nn.ModuleList()
+        temp_dim = input_dim
+        for hidden_dim in hidden_dim_list:
+            self.layers.append(nn.Linear(temp_dim, hidden_dim, bias=bias))
+            temp_dim = hidden_dim
+
+        self.layers.append(nn.Linear(temp_dim, output_dim, bias=bias))
+
+        self.dropout = nn.Dropout(p=dropout)
+        self.activation = ACTIVATION_DICT[activation]
+        self.last_activation = ACTIVATION_DICT[last_activation]
+
+    def forward(self, x):
+
+        x = self.dropout(x)
+
+        for layer in self.layers[:-1]:
+            x = layer(x)
+            if self.activation is not None:
+                x = self.activation(x)
+            x = self.dropout(x)
+
+        x = self.layers[-1](x)
+        if self.last_activation is not None:
+            x = self.last_activation(x)
+
+        return x

@@ -111,6 +111,17 @@ def maxcut_acc(output, data):
     return torch.max(1 - torch.nanmean(torch.abs(label - target), dim=-1), 1 - torch.nanmean(torch.abs((1-label) - target), dim=-1)).mean()
 
 
+def maxcut_p_exact(output, data):
+
+    target = data['cut_binary'].squeeze(-1)
+
+    output = output.squeeze(-1) + data.get('nan_mask')
+
+    label = (output > 0.5).float()
+
+    return torch.mean((torch.nanmean(1 - torch.abs(label - target), dim=-1) == 1).float())
+
+
 def color_loss(output, adj):
 
     output = (output - 0.5) * 2

@@ -25,7 +25,7 @@ def collate_fn(batch):
                 padded_batch[key][idx, :num_nodes] = batch[idx][key]
 
         
-        elif key in ['adj', 'gcn']:
+        elif key in ['adj', 'gcn', 'sct']:
             shape = (batch_size, max_num_nodes, max_num_nodes)
             padded_batch[key] = torch.zeros(shape)
             for idx, num_nodes in enumerate(num_nodes_list):

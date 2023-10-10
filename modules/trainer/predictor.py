@@ -32,9 +32,6 @@ class PredictorModule(LightningModule):
         self.accelerator = accelerator
 
     def forward(self, data):
-        # data['x'] = data['x'].to(self.accelerator)
-        # data['adj'] = data['adj'].to(self.accelerator)
-        # data['gcn'] = data['gcn'].to(self.accelerator)
 
         return self.model.forward(data)
     

@@ -11,6 +11,7 @@ from utils.metrics import (
     maxcut_loss,
     maxcut_mae,
     maxcut_acc,
+    maxcut_p_exact,
     maxclique_loss,
     maxclique_ratio,
 )
@@ -46,6 +47,6 @@ LOSS_FUNCTION_DICT = {
 }
     
 EVAL_FUNCTION_DICT = {
-    "maxcut": {"mae": maxcut_mae, "acc": maxcut_acc},
+    "maxcut": {"mae": maxcut_mae, "acc": maxcut_acc, "p_exact": maxcut_p_exact},
     "maxclique": {"mc_ratio": maxclique_ratio},
 }

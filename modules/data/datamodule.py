@@ -1,4 +1,4 @@
-from typing import Tuple, Union, List, Optional, Dict, Any, OrderedDict
+from typing import Tuple, Union, List, Optional, Dict, Any, OrderedDict, Literal
 
 import os
 
@@ -9,7 +9,7 @@ import pickle
 
 from torch_geometric.datasets import TUDataset
 from torch_geometric.utils import to_networkx
-
+from torch_geometric.data import Dataset as PygDataset
 from torch.utils.data import DataLoader, Dataset
 from pytorch_lightning import LightningDataModule
 
@@ -30,6 +30,7 @@ class DataModule(LightningDataModule):
         batch_size_train: int = 16,
         batch_size_valid: int = 16,
         regenerate: bool = False,
+        backend: Literal["base", "pyg"] = "base",
 
     ):
         super().__init__()
@@ -38,6 +39,7 @@ class DataModule(LightningDataModule):
         self.feat_kwargs = feat_kwargs
         self.data_dir = data_dir
         self.regenerate = regenerate
+        self.backend = backend
 
         self.train_ds_kwargs = train_ds_kwargs
         self.valid_ds_kwargs = valid_ds_kwargs
@@ -203,10 +205,28 @@ class DataModule(LightningDataModule):
         return sum([sample[key].size(-1) for key in feat_keys])
 
     def get_dataset(self, step: str):
-        return Dataset(self.datasets[step])
+        if self.backend == "pyg":
+            return PygDataset(self.datasets[step])
+        else:
+            return Dataset(self.datasets[step])
 
 
 class Dataset(Dataset):
+    def __init__(
+        self,
+        samples: Dict[str, torch.Tensor]
+    ) -> None:
+        super().__init__()
+        self.samples = samples
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        return self.samples[idx]
+
+
+class PygDataset(PygDataset):
     def __init__(
         self,
         samples: Dict[str, torch.Tensor]

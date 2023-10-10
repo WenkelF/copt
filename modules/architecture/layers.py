@@ -164,13 +164,13 @@ class HYBLayer(nn.Module):
             config: list = [-1, -2, -3, 1, 2, 3],
             bias: bool = True,
             dropout: float = 0.,
-            activation = nn.ReLU(),
+            activation = 'relu',
             combination: str = 'cat'
         ) -> None:
         super().__init__()
 
         self.dropout = nn.Dropout(p=dropout)
-        self.activation = activation
+        self.activation = ACTIVATION_DICT[activation]
         self.combination = combination
         
         self.config = config
