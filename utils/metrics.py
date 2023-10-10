@@ -3,27 +3,6 @@ from typing import Union, Tuple, List, Dict, Any
 import torch
 
 
-class Loss:
-    def __init__(
-        self,
-        task: str,
-        kwargs: Dict[str, Any] = None
-    ):
-
-        if task == 'maxclique':
-            self.loss_fn = lambda output, data: maxclique_loss(output, data, **kwargs)
-            self.decoder = maxclique_decoder
-        elif task == 'maxcut':
-            self.loss_fn = lambda output, data: maxcut_loss(output, data)
-            self.decoder = None
-        else:
-            raise ValueError(f"Invalid task: {task}")
-
-    def loss(self, output, data):
-
-        return self.loss_fn(output, data)
-
-
 def accuracy(output, target):
 
     return torch.mean((output.argmax(-1) == target).float())
@@ -87,17 +66,61 @@ def maxcut_loss(output, data):
     return torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).mean()
 
 
+# def maxcut_mae(output, data):
+
+#     target = data['cut_size']
+#     num_nodes = data['num_nodes']
+
+#     output = output.squeeze(-1) + data.get('nan_mask')
+
+#     pred = (output > 0.5).float().sum(-1)
+#     pred = torch.max(pred, num_nodes - pred)
+
+#     return (target - pred).abs().mean()
+
+
 def maxcut_mae(output, data):
 
-    target = data['cut_size']
-    num_nodes = data['num_nodes']
+    adj = data['adj']
+    adj_weight = adj.sum(-1).sum(-1)
+    target_size = adj_weight.clone()
+    pred_size = adj_weight.clone()
 
-    output = output.squeeze(-1) + data.get('nan_mask')
+    target = torch.nan_to_num(data['cut_binary'])
+    target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
+    target = 1 - target
+    target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
+    target_size /= 2
 
-    pred = (output > 0.5).float().sum(-1)
-    pred = torch.max(pred, num_nodes - pred)
+    output = (output > 0.5).float()
+    pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
+    output = 1 - output
+    pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
+    pred_size /= 2
 
-    return (target - pred).abs().mean()
+    return torch.mean(torch.abs(pred_size - target_size))
+
+
+def maxcut_p_correct(output, data):
+
+    adj = data['adj']
+    adj_weight = adj.sum(-1).sum(-1)
+    target_size = adj_weight.clone()
+    pred_size = adj_weight.clone()
+
+    target = torch.nan_to_num(data['cut_binary'])
+    target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
+    target = 1 - target
+    target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
+    target_size /= 2
+
+    output = (output > 0.5).float()
+    pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
+    output = 1 - output
+    pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
+    pred_size /= 2
+
+    return (pred_size >= target_size).float().mean()
 
 
 def maxcut_acc(output, data):
