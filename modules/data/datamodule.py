@@ -10,11 +10,13 @@ import pickle
 from torch_geometric.datasets import TUDataset
 from torch_geometric.utils import to_networkx
 from torch_geometric.data import Dataset as PygDataset
+from torch_geometric.loader import DataLoader as PygDataLoader
+from torch_geometric.data import Data
 from torch.utils.data import DataLoader, Dataset
 from pytorch_lightning import LightningDataModule
 
 from modules.data.data_generation import generate_sample
-from modules.data.collate import collate_fn
+from modules.data.collate import collate_fn, collate_fn_pyg
 
 
 class DataModule(LightningDataModule):
@@ -51,6 +53,11 @@ class DataModule(LightningDataModule):
         self.base_targets = None
 
         self.datasets = None
+
+        self.dataset = PygDataset if backend == "pyg" else Dataset
+        self.dataloader = PygDataLoader if backend == "pyg" else DataLoader
+        self.collate_fn = collate_fn_pyg if backend == "pyg" else collate_fn
+
 
     def prepare_data(self) -> None:
 
@@ -190,13 +197,13 @@ class DataModule(LightningDataModule):
 
 
     def train_dataloader(self):
-        return DataLoader(self.train_ds, batch_size=self.batch_size_train, shuffle=True, collate_fn=collate_fn)
+        return self.dataloader(self.train_ds, batch_size=self.batch_size_train, shuffle=True, collate_fn=self.collate_fn)
 
     def val_dataloader(self):
-        return DataLoader(self.valid_ds, batch_size=self.batch_size_valid, shuffle=False, collate_fn=collate_fn)
+        return self.dataloader(self.valid_ds, batch_size=self.batch_size_valid, shuffle=False, collate_fn=self.collate_fn)
 
     def test_dataloader(self):
-        return DataLoader(self.test_ds, batch_size=self.batch_size_valid, shuffle=False, collate_fn=collate_fn)
+        return self.dataloader(self.test_ds, batch_size=self.batch_size_valid, shuffle=False, collate_fn=self.collate_fn)
 
     def get_num_features(self):
         sample = self.datasets["train"][0]
@@ -205,10 +212,12 @@ class DataModule(LightningDataModule):
         return sum([sample[key].size(-1) for key in feat_keys])
 
     def get_dataset(self, step: str):
-        if self.backend == "pyg":
-            return PygDataset(self.datasets[step])
-        else:
-            return Dataset(self.datasets[step])
+        dataset = self.datasets[step]
+
+        # if self.backend == "pyg":
+        #     dataset = [Data.from_dict(sample) for sample in self.datasets[step]]
+
+        return self.dataset(dataset)
 
 
 class Dataset(Dataset):
@@ -234,8 +243,8 @@ class PygDataset(PygDataset):
         super().__init__()
         self.samples = samples
 
-    def __len__(self):
+    def len(self):
         return len(self.samples)
 
-    def __getitem__(self, idx):
+    def get(self, idx):
         return self.samples[idx]

@@ -7,8 +7,7 @@ import networkx as nx
 import dwave_networkx as dnx
 import dimod
 
-from torch_geometric.datasets import TUDataset
-from torch_geometric.utils import to_networkx
+from torch_geometric.utils import from_networkx
 
 from utils import get_gcn_matrix, get_sct_matrix, get_res_matrix
 
@@ -38,13 +37,16 @@ def generate_sample(
     num_nodes = adj.size(0)
 
     sample = {
-            "adj": adj,
-            "num_nodes": num_nodes,
-        }
+        "adj_mat": adj,
+        "num_nodes": num_nodes,
+    }
 
     # Compute support matrices
     for type in data_kwargs["supp_matrices"]:
-        sample.update(generate_supp_matrix(adj, type))
+        if type == 'edge_index':
+            sample.update({"edge_index": from_networkx(g).edge_index})
+        else:
+            sample.update(generate_supp_matrix(adj, type))
 
     # Compute node features
     for this_name, this_kwargs in feat_kwargs.items():
@@ -92,7 +94,7 @@ def generate_supp_matrix(
     else:
         raise NotImplementedError("Unknown support matrix type.")
     
-    return {type: supp_matrix}
+    return {"".join([type, "_mat"]): supp_matrix}
 
 
 def generate_features(

@@ -48,3 +48,10 @@ def collate_fn(batch):
     padded_batch['nan_mask'] = nan_mask
    
     return padded_batch
+
+
+def collate_fn_pyg(batch):
+
+    
+   
+    return batch
