@@ -84,15 +84,17 @@ def maxcut_loss(output, data):
 
     output = (output - 0.5) * 2
 
-    return - torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).sum()
+    return torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).mean()
 
 
 def maxcut_mae(output, data):
 
-    target = data['target']
+    target = data['cut_size']
     num_nodes = data['num_nodes']
 
-    pred = (output.squeeze(-1) > 0.5).float().sum(-1)
+    output = output.squeeze(-1) + data.get('nan_mask')
+
+    pred = (output > 0.5).float().sum(-1)
     pred = torch.max(pred, num_nodes - pred)
 
     return (target - pred).abs().mean()
@@ -100,11 +102,13 @@ def maxcut_mae(output, data):
 
 def maxcut_acc(output, data):
 
-    target = data['cut_binary']
+    target = data['cut_binary'].squeeze(-1)
+
+    output = output.squeeze(-1) + data.get('nan_mask')
 
     label = (output > 0.5).float()
 
-    return max(1 - torch.nanmean(torch.abs(label - target)), 1 - torch.nanmean(torch.abs((1-label) - target)))
+    return torch.max(1 - torch.nanmean(torch.abs(label - target), dim=-1), 1 - torch.nanmean(torch.abs((1-label) - target), dim=-1)).mean()
 
 
 def color_loss(output, adj):

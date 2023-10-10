@@ -50,7 +50,7 @@ def main(cfg):
 
 if __name__ == "__main__":
         MAIN_DIR = os.getcwd()
-        CONFIG_FILE = "expts/configs/config_mc.yaml"
+        CONFIG_FILE = "expts/configs/config_maxcut.yaml"
 
         os.chdir(MAIN_DIR)
 

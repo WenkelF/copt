@@ -44,7 +44,7 @@ def load_predictor(cfg, model, loss_func, eval_func_dict):
     optimizer_kwargs = cfg["training"].pop("optimizer_kwargs")
     scheduler_kwargs = cfg["training"].pop("scheduler_kwargs")
 
-    predictor = PredictorModule(model, loss_func, eval_func_dict, optimizer_kwargs=optimizer_kwargs, scheduler_kwargs=scheduler_kwargs)
+    predictor = PredictorModule(model, loss_func, eval_func_dict, optimizer_kwargs=optimizer_kwargs, scheduler_kwargs=scheduler_kwargs, accelerator=cfg["constants"]["device"])
 
     return predictor
 
@@ -59,14 +59,3 @@ def load_trainer(cfg):
         trainer.logger = WandbLogger(**wandb_kwargs)
 
     return trainer
-
-# def load_trainer(cfg, binder):
-
-#     cfg_train = cfg["training"]
-
-#     trainer = Trainer(
-#         binder = binder,
-#         **cfg_train,
-#     )
-
-#     return trainer

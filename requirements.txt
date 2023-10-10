@@ -8,3 +8,4 @@ torchvision
 torchaudio
 pytorch-lightning
 wandb
+pytorch_geometric

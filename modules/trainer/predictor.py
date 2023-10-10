@@ -20,15 +20,22 @@ class PredictorModule(LightningModule):
         eval_func_dict: Dict,
         optimizer_kwargs: Dict,
         scheduler_kwargs: Dict,
+        accelerator: str = 'cpu'
     ):
         super().__init__()
-        self.model = model
+        self.model = model.to(accelerator)
         self.loss_func = loss_func
         self.eval_func_dict = eval_func_dict
         self.optimizer_kwargs = optimizer_kwargs
         self.scheduler_kwargs = scheduler_kwargs
 
+        self.accelerator = accelerator
+
     def forward(self, data):
+        # data['x'] = data['x'].to(self.accelerator)
+        # data['adj'] = data['adj'].to(self.accelerator)
+        # data['gcn'] = data['gcn'].to(self.accelerator)
+
         return self.model.forward(data)
     
     def training_step(self, batch, batch_idx):
@@ -36,7 +43,7 @@ class PredictorModule(LightningModule):
         out = self.forward(data)
 
         loss = self.loss_func(out, data)
-        self.log("loss/train", loss, on_epoch=True, prog_bar=True, logger=True)
+        self.log("loss/train", loss, on_step=True, prog_bar=True, logger=True)
         
         return loss
     

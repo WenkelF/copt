@@ -17,12 +17,11 @@ class GCN(nn.Module):
             bias: bool = True,
             dropout: float = 0.,
             activation = 'relu',
-            device: str = 'cpu'
+            last_activation = 'none',
     ):
         super().__init__()
 
-        self.device = device
-        hidden_dim_list = [hidden_dim] * (num_layers - 1) + [output_dim]
+        hidden_dim_list = [hidden_dim] * (num_layers - 1)
 
         self.gnn_layers = nn.ModuleList()
         temp_dim = input_dim
@@ -30,10 +29,12 @@ class GCN(nn.Module):
             self.gnn_layers.append(GNNLayer(temp_dim, hidden_dim, bias, dropout, activation))
             temp_dim = hidden_dim
 
+        self.gnn_layers.append(GNNLayer(temp_dim, output_dim, bias, dropout, activation=last_activation))
+
     def forward(self, data):
 
-        x = data['x'].to(self.device)
-        gcn_mat = data['gcn'].to(self.device)
+        x = data['x']
+        gcn_mat = data['gcn']
 
         for layer in self.gnn_layers:
             x = layer(x, gcn_mat)
@@ -58,13 +59,11 @@ class GAT(nn.Module):
             skip: bool = False,
             self_loops: bool = True,
             analysis_mode: bool = False,
-            device: str = "cpu",
     ):
         super().__init__()
 
         self.self_loops = self_loops
         self.analysis_mode = analysis_mode
-        self.device = device
 
         self.layers = nn.ModuleList()
         temp_dim = input_dim
@@ -78,10 +77,10 @@ class GAT(nn.Module):
 
     def forward(self, data):
 
-        x = data['x'].to(self.device)
-        adj = data['adj'].to(self.device)
+        x = data['x']
+        adj = data['adj']
         if self.self_loops:
-            adj = adj + torch.eye(adj.size(-1)).to(adj.device)
+            adj = adj + torch.eye(adj.size(-1))
 
         # att_mat_list = []
         for layer in self.layers:
@@ -112,11 +111,8 @@ class ScGCN(nn.Module):
             bias: bool = True,
             dropout: float = 0.,
             activation = nn.ReLU(),
-            device: str = "cpu"
     ):
         super().__init__()
-
-        self.device = device
 
         self.hyb_layers = nn.ModuleList()
         temp_dim = input_dim
@@ -128,9 +124,9 @@ class ScGCN(nn.Module):
 
     def forward(self, data):
 
-        x = data['x'].to(self.device)
-        gcn_mat = data['gcn_mat'].to(self.device)
-        sct_mat = data['sct_mat'].to(self.device)
+        x = data['x']
+        gcn_mat = data['gcn']
+        sct_mat = data['sct']
 
         for hyb_layer in self.hyb_layers:
             x = hyb_layer(x, gcn_mat, sct_mat)
@@ -168,7 +164,7 @@ class ScGCN_pre(nn.Module):
 
     def forward(self, data):
 
-        x = data['x'].to(self.device)
+        x = data['x']
 
         for hyb_layer in self.hyb_layers:
             x = hyb_layer(x, data.mat_list)
@@ -215,7 +211,7 @@ class ScGCN_rwg(nn.Module):
         x = data.x
         adj = data.adj
         if self.self_loops:
-            adj = adj + torch.eye(adj.size(-1)).to(adj.device)
+            adj = adj + torch.eye(adj.size(-1))
 
         for i in range(self.num_layers):
             sct_mat = self.rwg_layers[i](x, adj)

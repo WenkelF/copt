@@ -45,6 +45,9 @@ class DataModule(LightningDataModule):
         self.batch_size_train = batch_size_train
         self.batch_size_valid = batch_size_valid
 
+        self.base_dataset = None
+        self.base_targets = None
+
         self.datasets = None
 
     def prepare_data(self) -> None:
@@ -191,7 +194,7 @@ class DataModule(LightningDataModule):
         return DataLoader(self.valid_ds, batch_size=self.batch_size_valid, shuffle=False, collate_fn=collate_fn)
 
     def test_dataloader(self):
-        return DataLoader(self.train_ds, batch_size=self.batch_size_valid, shuffle=False, collate_fn=collate_fn)
+        return DataLoader(self.test_ds, batch_size=self.batch_size_valid, shuffle=False, collate_fn=collate_fn)
 
     def get_num_features(self):
         sample = self.datasets["train"][0]

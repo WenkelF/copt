@@ -40,5 +40,11 @@ def collate_fn(batch):
     padded_batch['x'] = torch.cat([padded_batch[key] for key in feat_keys], dim=-1)
     for key in feat_keys:
         padded_batch.pop(key)
+    
+    nan_mask = torch.zeros((batch_size, max_num_nodes))
+    for idx, num_nodes in enumerate(num_nodes_list):
+        nan_mask[idx, num_nodes:] = float('nan')
+
+    padded_batch['nan_mask'] = nan_mask
    
     return padded_batch

@@ -3,7 +3,7 @@
 constants:
   seed: 0
   device: &device cpu # cpu or cuda
-  data_dir: &data_dir /home/mila/f/frederik.wenkel/scratch/data/comb-opt/
+  data_dir: &data_dir /home/mila/f/frederik.wenkel/scratch/data/copt/
   save_dir: &save_dir ./results/
   wandb:
     name: test
@@ -13,13 +13,9 @@ constants:
 datamodule:
   task: &task maxclique
   data_dir: *data_dir
-  regenerate: true
+  regenerate: false
   data_kwargs:
     from_existing: imdb
-    num_samples: 10
-    # n_min: 8
-    # n_max: 12
-    # p: 0.4
     supp_matrices: ["gcn"]
   feat_kwargs:
     degree:
@@ -39,21 +35,17 @@ datamodule:
       type: const
       level: node
       norm: true
-    # random:
-    #   level: node
-    #   type: dirac # dirac or gaussian
-    # diffusion:
-    #   level: node
-    #   scales: [1, 2, 4]
   train_ds_kwargs:
-    frac: 0.8
+    frac: 0.9
     label: false
   valid_ds_kwargs:
-    frac: 0.2
+    frac: 0.05
     label: true
-  test_ds_kwargs: null
-  batch_size_train: 64
-  batch_size_valid: 64
+  test_ds_kwargs:
+    frac: 0.05
+    label: true
+  batch_size_train: 256
+  batch_size_valid: 256
 
 architecture:
   task: *task
@@ -61,23 +53,23 @@ architecture:
     gcn:
       type: gcn
       output_dim: 1
-      hidden_dim: 32
+      hidden_dim: 64
       num_layers: 4
   head_kwargs:
     pool: none
     type: mlp
     hidden_dims: [16]
     out_dim: 1
-  loss_kwargs:
+  loss_kwargs: null
     beta: 0.1
-  eval_kwargs:
+  eval_kwargs: null
     mc_ratio:
       dec_length: 100
 
 training:
   optimizer_kwargs:
     type: adam
-    lr: 0.01
+    lr: 0.001
     weight_decay: 0.0005
   scheduler_kwargs:
     step_size: 100
