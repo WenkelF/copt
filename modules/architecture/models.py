@@ -27,9 +27,9 @@ class GCN(nn.Module):
 
         self.gnn_layers = nn.ModuleList()
         temp_dim = input_dim
-        for hidden_dim in hidden_dim_list:
-            self.gnn_layers.append(GNNLayer(temp_dim, hidden_dim, bias, dropout, activation))
-            temp_dim = hidden_dim
+        for this_hidden_dim in hidden_dim_list:
+            self.gnn_layers.append(GNNLayer(temp_dim, this_hidden_dim, bias, dropout, activation))
+            temp_dim = this_hidden_dim
 
         self.gnn_layers.append(GNNLayer(temp_dim, output_dim, bias, dropout, activation=last_activation))
 

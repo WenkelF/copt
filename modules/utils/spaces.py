@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch.optim import SGD, Adam
 
 from modules.architecture.models import GCN, GAT, ScGCN
+from modules.architecture.models_pyg import PygGCN
 
 from utils.norms import min_max_norm    
 
@@ -24,6 +25,7 @@ OPTIMIZER_DICT = {
 
 GNN_MODEL_DICT = {
     "gcn": GCN,
+    "pyg:gcn": PygGCN,
     "gat": GAT,
     "scgcn": ScGCN,
 }
@@ -48,6 +50,6 @@ LOSS_FUNCTION_DICT = {
 }
     
 EVAL_FUNCTION_DICT = {
-    "maxcut": {"mae": maxcut_mae, "p_correct": maxcut_p_correct},
+    "maxcut": {"mae": maxcut_mae},
     "maxclique": {"mc_ratio": maxclique_ratio},
 }

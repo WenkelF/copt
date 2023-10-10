@@ -23,7 +23,7 @@ class PredictorModule(LightningModule):
         accelerator: str = 'cpu'
     ):
         super().__init__()
-        self.model = model.to(accelerator)
+        self.model = model.double().to(accelerator)
         self.loss_func = loss_func
         self.eval_func_dict = eval_func_dict
         self.optimizer_kwargs = optimizer_kwargs
