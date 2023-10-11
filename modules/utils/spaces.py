@@ -11,9 +11,10 @@ from utils.norms import min_max_norm
 from utils.metrics import (
     maxcut_loss,
     maxcut_mae,
-    maxcut_p_correct,
     maxcut_acc,
-    maxcut_p_exact,
+    maxcut_loss_pyg,
+    maxcut_mae_pyg,
+    maxcut_acc_pyg,
     maxclique_loss,
     maxclique_ratio,
 )
@@ -24,8 +25,8 @@ OPTIMIZER_DICT = {
 }
 
 GNN_MODEL_DICT = {
-    "gcn": GCN,
     "pyg:gcn": PygGCN,
+    "gcn": GCN,
     "gat": GAT,
     "scgcn": ScGCN,
 }
@@ -45,11 +46,11 @@ LAST_NORMALIZATION_DICT = {
 }
 
 LOSS_FUNCTION_DICT = {
-    "maxcut": maxcut_loss,
+    "maxcut": maxcut_loss_pyg,
     "maxclique": maxclique_loss,
 }
     
 EVAL_FUNCTION_DICT = {
-    "maxcut": {"mae": maxcut_mae},
+    "maxcut": {"mae": maxcut_mae_pyg, "acc": maxcut_acc_pyg},
     "maxclique": {"mc_ratio": maxclique_ratio},
 }

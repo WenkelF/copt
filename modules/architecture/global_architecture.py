@@ -46,18 +46,20 @@ class FullGraphNetwork(nn.Module):
         for module in self.gnn.values():
             data = module(data)
 
-        out = data['x']
+        x = data['x']
 
         if self.pooling_operation is not None:
-            out = self.pooling_operation(out, data)
+            x = self.pooling_operation(x, data)
 
         if self.head is not None:
-            out = self.head(out)
+            x = self.head(x)
 
         if self.last_activation is not None:
-            out = self.last_activation(out)
+            x = self.last_activation(x)
         
         if self.last_norm is not None:
-            out = self.last_norm(out, data)
+            x = self.last_norm(x, data)
 
-        return out
+        data['x'] = x
+
+        return data
