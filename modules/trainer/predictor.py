@@ -36,36 +36,33 @@ class PredictorModule(LightningModule):
         return self.model.forward(data)
     
     def training_step(self, batch, batch_idx):
-        data = batch
-        out = self.forward(data)
+        batch = self.forward(batch)
 
-        loss = self.loss_func(out, data)
+        loss = self.loss_func(batch)
         self.log("loss/train", loss, on_step=True, prog_bar=True, logger=True)
         
         return loss
     
     def validation_step(self, batch, batch_idx):
-        data = batch
-        out = self.forward(data)
+        out = self.forward(batch)
 
-        loss = self.loss_func(out, data)
+        loss = self.loss_func(batch)
         self.log("loss/valid", loss, on_epoch=True, prog_bar=True, logger=True)
         
         for eval_type, eval_func in self.eval_func_dict.items():
-            eval = eval_func(out, data)
+            eval = eval_func(batch)
             self.log("".join([eval_type, "/valid"]), eval, on_epoch=True, prog_bar=True, logger=True)
         
         return loss
     
     def test_step(self, batch, batch_idx):
-        data = batch
-        out = self.forward(data)
+        out = self.forward(batch)
 
-        loss = self.loss_func(out, data)
+        loss = self.loss_func(batch)
         self.log("loss/test", loss, on_epoch=True, prog_bar=True, logger=True)
         
         for eval_type, eval_func in self.eval_func_dict.items():
-            eval = eval_func(out, data)
+            eval = eval_func(batch)
             self.log("".join([eval_type, "/test"]), eval, on_epoch=True, prog_bar=True, logger=True)
         
         return loss
