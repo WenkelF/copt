@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch_geometric.graphgym import register
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.models.layer import new_layer_config, MLP
 from torch_geometric.graphgym.register import register_head
@@ -38,6 +39,30 @@ class GNNInductiveNodeHead(nn.Module):
         pred, true = _apply_index(batch)
         return pred, true
 
+
+@register_head('copt_inductive_node')
+class COPTInductiveNodeHead(nn.Module):
+    """
+    GNN prediction head for inductive node prediction tasks.
+
+    Args:
+        dim_in (int): Input dimension
+        dim_out (int): Output dimension. For binary prediction, dim_out=1.
+    """
+
+    def __init__(self, dim_in, dim_out):
+        super(COPTInductiveNodeHead, self).__init__()
+        self.layer_post_mp = MLP(
+            new_layer_config(dim_in, dim_out, cfg.gnn.layers_post_mp,
+                             has_act=False, has_bias=True, cfg=cfg))
+        self.last_act = None if cfg.gnn.last_act is None else register.act_dict[cfg.gnn.last_act]
+        # self.act = cfg.gnn.last_norm
+
+
+    def forward(self, batch):
+        batch = self.layer_post_mp(batch)
+        batch = batch if self.last_act is None else self.last_act(batch)
+        return batch
 
 @register_head('inductive_node_multi')
 class GNNInductiveNodeMultiHead(nn.Module):
