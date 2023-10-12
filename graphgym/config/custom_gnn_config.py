@@ -15,3 +15,5 @@ def custom_gnn_cfg(cfg):
 
     # Concatenate embeddings from multihead attentions, followed by a lin proj
     cfg.gnn.att_concat_proj = False
+
+    cfg.gnn.last_act = None

@@ -38,6 +38,7 @@ def extended_cfg(cfg):
     # always checkpoint the current best model based on validation performance,
     # instead, when False, follow cfg.train.eval_period checkpointing frequency.
     cfg.train.ckpt_best = False
+    cfg.train.task = None
 
     # If set to some string value indicating the output directory, then dump
     # the test splits true/pred/batch_idx values under that directory, named
