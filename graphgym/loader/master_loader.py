@@ -9,6 +9,9 @@ from typing import List, Optional
 from urllib.parse import urljoin
 
 import numpy as np
+import networkx as nx
+import dwave_networkx as dnx
+import dimod
 import requests
 import torch
 import torch_geometric.transforms as T
@@ -23,19 +26,14 @@ from torch_geometric.graphgym.loader import (load_ogb, load_pyg,
 from torch_geometric.graphgym.model_builder import GraphGymModule
 from torch_geometric.graphgym.register import register_loader
 from torch_geometric.loader import DataLoader
-from torch_geometric.utils import from_smiles
+from torch_geometric.utils import from_smiles, to_networkx
 from torch_scatter import scatter_sum
 from tqdm import tqdm, trange
 from yacs.config import CfgNode as CN
 
 from graphgym.encoder.gnn_encoder import gpse_process_batch
 from graphgym.head.identity import IdentityHead
-from graphgym.loader.dataset.aqsol_molecules import AQSOL
-from graphgym.loader.dataset.coco_superpixels import COCOSuperpixels
-from graphgym.loader.dataset.malnet_tiny import MalNetTiny
-from graphgym.loader.dataset.open_mol_graph import OpenMolGraph
 from graphgym.loader.dataset.synthetic_wl import SyntheticWL
-from graphgym.loader.dataset.voc_superpixels import VOCSuperpixels
 from graphgym.loader.split_generator import prepare_splits, set_dataset_splits
 from graphgym.transform.gnn_hash import GraphNormalizer, RandomGNNHash
 from graphgym.transform.posenc_stats import compute_posenc_stats
@@ -45,6 +43,8 @@ from graphgym.transform.transforms import (VirtualNodePatchSingleton,
                                            pre_transform_in_memory, typecast_x)
 from graphgym.utils import get_device
 from graphgym.wl_dataset import ToyWLDataset
+
+from modules.data.data_generation import compute_degrees, compute_eccentricity, compute_triangle_count, compute_cluster_coefficient
 
 
 def log_loaded_dataset(dataset, format, name):
@@ -223,22 +223,11 @@ def load_dataset_master(format, name, dataset_dir):
         if pyg_dataset_id == 'GNNBenchmarkDataset':
             dataset = preformat_GNNBenchmarkDataset(dataset_dir, name)
 
-        elif pyg_dataset_id == 'MalNetTiny':
-            dataset = preformat_MalNetTiny(dataset_dir, feature_set=name)
-
         elif pyg_dataset_id == 'Planetoid':
             dataset = Planetoid(dataset_dir, name)
 
         elif pyg_dataset_id == 'TUDataset':
             dataset = preformat_TUDataset(dataset_dir, name)
-
-        elif pyg_dataset_id == 'VOCSuperpixels':
-            dataset = preformat_VOCSuperpixels(dataset_dir, name,
-                                               cfg.dataset.slic_compactness)
-
-        elif pyg_dataset_id == 'COCOSuperpixels':
-            dataset = preformat_COCOSuperpixels(dataset_dir, name,
-                                                cfg.dataset.slic_compactness)
 
         elif pyg_dataset_id == 'WikipediaNetwork':
             if name == 'crocodile':
@@ -248,53 +237,12 @@ def load_dataset_master(format, name, dataset_dir):
         elif pyg_dataset_id == 'ZINC':
             dataset = preformat_ZINC(dataset_dir, name)
 
-        elif pyg_dataset_id == 'AQSOL':
-            dataset = preformat_AQSOL(dataset_dir, name)
-
         else:
             raise ValueError(f"Unexpected PyG Dataset identifier: {format}")
 
     # GraphGym default loader for Pytorch Geometric datasets
     elif format == 'PyG':
         dataset = load_pyg(name, dataset_dir)
-
-    elif format == 'OGB':
-        if name.startswith('ogbg'):
-            dataset = preformat_OGB_Graph(dataset_dir, name.replace('_', '-'))
-
-        elif name.startswith('ogbn'):
-            dataset = preformat_OGB_Node(dataset_dir, name.replace('_', '-'))
-
-        elif name.startswith('PCQM4Mv2-'):
-            subset = name.split('-', 1)[1]
-            dataset = preformat_OGB_PCQM4Mv2(dataset_dir, subset)
-
-        elif name.startswith('peptides-'):
-            dataset = preformat_Peptides(dataset_dir, name)
-
-        ### Link prediction datasets.
-        elif name.startswith('ogbl-'):
-            # GraphGym default loader.
-            dataset = load_ogb(name, dataset_dir)
-
-            # OGB link prediction datasets are binary classification tasks,
-            # however the default loader creates float labels => convert to int.
-            def convert_to_int(ds, prop):
-                tmp = getattr(ds.data, prop).int()
-                set_dataset_attr(ds, prop, tmp, len(tmp))
-
-            convert_to_int(dataset, 'train_edge_label')
-            convert_to_int(dataset, 'val_edge_label')
-            convert_to_int(dataset, 'test_edge_label')
-
-        elif name.startswith('PCQM4Mv2Contact-'):
-            dataset = preformat_PCQM4Mv2Contact(dataset_dir, name)
-
-        else:
-            raise ValueError(f"Unsupported OGB(-derived) dataset: {name}")
-
-    elif format == 'OpenMolGraph':
-        dataset = preformat_OpenMolGraph(dataset_dir, name=name)
 
     elif format == 'SyntheticWL':
         dataset = preformat_SyntheticWL(dataset_dir, name=name)
@@ -370,6 +318,9 @@ def load_dataset_master(format, name, dataset_dir):
     if cfg.virtual_node:
         set_virtual_node(dataset)
 
+    if cfg.train.task is not None:
+        set_copt(dataset)
+
     if dataset.transform_list is not None:
         dataset.transform = T.Compose(dataset.transform_list)
 
@@ -380,13 +331,6 @@ def load_dataset_master(format, name, dataset_dir):
 
     # Verify or generate dataset train/val/test splits
     prepare_splits(dataset)
-
-    # Precompute in-degree histogram if needed for PNAConv.
-    if cfg.gt.layer_type.startswith('PNA') and len(cfg.gt.pna_degrees) == 0:
-        cfg.gt.pna_degrees = compute_indegree_histogram(
-            dataset[dataset.data['train_graph_index']])
-        # print(f"Indegrees: {cfg.gt.pna_degrees}")
-        # print(f"Avg:{np.mean(cfg.gt.pna_degrees)}")
 
     # Precompute GPSE if it is enabled
     if cfg.posenc_GPSE.enable:
@@ -565,27 +509,6 @@ def precompute_gpse(cfg, dataset):
     _recover_orig_cfgs()
 
 
-def compute_indegree_histogram(dataset):
-    """Compute histogram of in-degree of nodes needed for PNAConv.
-
-    Args:
-        dataset: PyG Dataset object
-
-    Returns:
-        List where i-th value is the number of nodes with in-degree equal to `i`
-    """
-    from torch_geometric.utils import degree
-
-    deg = torch.zeros(1000, dtype=torch.long)
-    max_degree = 0
-    for data in dataset:
-        d = degree(data.edge_index[1],
-                   num_nodes=data.num_nodes, dtype=torch.long)
-        max_degree = max(max_degree, d.max().item())
-        deg += torch.bincount(d, minlength=deg.numel())
-    return deg.numpy().tolist()[:max_degree + 1]
-
-
 def preformat_GNNBenchmarkDataset(dataset_dir, name):
     """Load and preformat datasets from PyG's GNNBenchmarkDataset.
 
@@ -616,26 +539,6 @@ def preformat_GNNBenchmarkDataset(dataset_dir, name):
     )
     pre_transform_in_memory(dataset, T.Compose(tf_list))
 
-    return dataset
-
-
-def preformat_OpenMolGraph(dataset_dir, name):
-    """Load and preformat Open Molecular Graph datasets.
-
-    Args:
-        dataset_dir: path where to store the cached dataset.
-        name: name of the specific dataset in the OpenMolGraph collection.
-
-    Returns:
-        PyG dataset object
-
-    Notes:
-        This dataset does not come with pre-defined splits. Need to use split
-        generation functionalities such as umg to set up splits.
-
-    """
-    dataset = OpenMolGraph(dataset_dir, name=name,
-                           n_jobs=max(1, cfg.num_workers))
     return dataset
 
 
@@ -672,267 +575,6 @@ def preformat_ToyWL(dataset_dir, name=None):
     """
     dataset = ToyWLDataset(dataset_dir, name)
     dataset = join_dataset_splits([deepcopy(dataset) for _ in range(3)])
-    return dataset
-
-
-def preformat_MalNetTiny(dataset_dir, feature_set):
-    """Load and preformat Tiny version (5k graphs) of MalNet
-
-    Args:
-        dataset_dir: path where to store the cached dataset
-        feature_set: select what node features to precompute as MalNet
-            originally doesn't have any node nor edge features
-
-    Returns:
-        PyG dataset object
-    """
-    if feature_set in ['none', 'Constant']:
-        tf = T.Constant()
-    elif feature_set == 'OneHotDegree':
-        tf = T.OneHotDegree()
-    elif feature_set == 'LocalDegreeProfile':
-        tf = T.LocalDegreeProfile()
-    else:
-        raise ValueError(f"Unexpected transform function: {feature_set}")
-
-    dataset = MalNetTiny(dataset_dir)
-    dataset.name = 'MalNetTiny'
-    logging.info(f'Computing "{feature_set}" node features for MalNetTiny.')
-    pre_transform_in_memory(dataset, tf)
-
-    split_dict = dataset.get_idx_split()
-    dataset.split_idxs = [split_dict['train'],
-                          split_dict['valid'],
-                          split_dict['test']]
-
-    return dataset
-
-
-def preformat_OGB_Graph(dataset_dir, name):
-    """Load and preformat OGB Graph Property Prediction datasets.
-
-    Args:
-        dataset_dir: path where to store the cached dataset
-        name: name of the specific OGB Graph dataset
-
-    Returns:
-        PyG dataset object
-    """
-    dataset = PygGraphPropPredDataset(name=name, root=dataset_dir)
-    s_dict = dataset.get_idx_split()
-    dataset.split_idxs = [s_dict[s] for s in ['train', 'valid', 'test']]
-
-    if name == 'ogbg-ppa':
-        # ogbg-ppa doesn't have any node features, therefore add zeros but do
-        # so dynamically as a 'transform' and not as a cached 'pre-transform'
-        # because the dataset is big (~38.5M nodes), already taking ~31GB space
-        def add_zeros(data):
-            data.x = torch.zeros(data.num_nodes, dtype=torch.long)
-            return data
-
-        dataset.transform = add_zeros
-    elif name == 'ogbg-code2':
-        from graphgym.loader.ogbg_code2_utils import idx2vocab, \
-            get_vocab_mapping, augment_edge, encode_y_to_arr
-        num_vocab = 5000  # The number of vocabulary used for sequence prediction
-        max_seq_len = 5  # The maximum sequence length to predict
-
-        seq_len_list = np.array([len(seq) for seq in dataset.data.y])
-        logging.info(f"Target sequences less or equal to {max_seq_len} is "
-                     f"{np.sum(seq_len_list <= max_seq_len) / len(seq_len_list)}")
-
-        # Building vocabulary for sequence prediction. Only use training data.
-        vocab2idx, idx2vocab_local = get_vocab_mapping(
-            [dataset.data.y[i] for i in s_dict['train']], num_vocab)
-        logging.info(f"Final size of vocabulary is {len(vocab2idx)}")
-        idx2vocab.extend(idx2vocab_local)  # Set to global variable to later access in CustomLogger
-
-        # Set the transform function:
-        # augment_edge: add next-token edge as well as inverse edges. add edge attributes.
-        # encode_y_to_arr: add y_arr to PyG data object, indicating the array repres
-        dataset.transform = T.Compose(
-            [augment_edge,
-             lambda data: encode_y_to_arr(data, vocab2idx, max_seq_len)])
-
-        # Subset graphs to a maximum size (number of nodes) limit.
-        pre_transform_in_memory(dataset, partial(clip_graphs_to_size,
-                                                 size_limit=1000))
-
-    return dataset
-
-
-def preformat_OGB_Node(dataset_dir, name):
-    """Load and preformat OGB Node Property Prediction datasets.
-
-    Args:
-        dataset_dir: path where to store the cached dataset
-        name: name of the specific OGB Node dataset
-
-    Returns:
-        PyG dataset object
-    """
-    dataset = PygNodePropPredDataset(name=name, root=dataset_dir)
-    splits = dataset.get_idx_split()
-    dataset.split_idxs = [splits[s] for s in ['train', 'valid', 'test']]
-    pre_transform_in_memory(dataset, T.ToUndirected())
-
-    if "proteins" in name.lower():
-        # Prepare default node features as the summed edge weights (8 dim)
-        x = scatter_sum(dataset[0].edge_attr, dataset[0].edge_index[0], dim=0)
-        set_dataset_attr(dataset, 'x', x, x.shape)
-
-    return dataset
-
-
-def preformat_OGB_PCQM4Mv2(dataset_dir, name):
-    """Load and preformat PCQM4Mv2 from OGB LSC.
-
-    OGB-LSC provides 4 data index splits:
-    2 with labeled molecules: 'train', 'valid' meant for training and dev
-    2 unlabeled: 'test-dev', 'test-challenge' for the LSC challenge submission
-
-    We will take random 150k from 'train' and make it a validation set and
-    use the original 'valid' as our testing set.
-
-    Note: PygPCQM4Mv2Dataset requires rdkit
-
-    Args:
-        dataset_dir: path where to store the cached dataset
-        name: select 'subset' or 'full' version of the training set
-
-    Returns:
-        PyG dataset object
-    """
-    try:
-        # Load locally to avoid RDKit dependency until necessary.
-        from ogb.lsc import PygPCQM4Mv2Dataset
-    except Exception as e:
-        logging.error('ERROR: Failed to import PygPCQM4Mv2Dataset, '
-                      'make sure RDKit is installed.')
-        raise e
-
-    dataset = PygPCQM4Mv2Dataset(root=dataset_dir)
-    split_idx = dataset.get_idx_split()
-
-    rng = default_rng(seed=42)
-    train_idx = rng.permutation(split_idx['train'].numpy())
-    train_idx = torch.from_numpy(train_idx)
-
-    # Leave out 150k graphs for a new validation set.
-    valid_idx, train_idx = train_idx[:150000], train_idx[150000:]
-    if name == 'full':
-        split_idxs = [train_idx,  # Subset of original 'train'.
-                      valid_idx,  # Subset of original 'train' as validation set.
-                      split_idx['valid']  # The original 'valid' as testing set.
-                      ]
-
-    elif name == 'subset':
-        # Further subset the training set for faster debugging.
-        subset_ratio = 0.1
-        subtrain_idx = train_idx[:int(subset_ratio * len(train_idx))]
-        subvalid_idx = valid_idx[:50000]
-        subtest_idx = split_idx['valid']  # The original 'valid' as testing set.
-
-        dataset = dataset[torch.cat([subtrain_idx, subvalid_idx, subtest_idx])]
-        data_list = [data for data in dataset]
-        dataset._indices = None
-        dataset._data_list = data_list
-        dataset.data, dataset.slices = dataset.collate(data_list)
-        n1, n2, n3 = len(subtrain_idx), len(subvalid_idx), len(subtest_idx)
-        split_idxs = [list(range(n1)),
-                      list(range(n1, n1 + n2)),
-                      list(range(n1 + n2, n1 + n2 + n3))]
-
-    elif name == 'inference':
-        split_idxs = [split_idx['valid'],  # The original labeled 'valid' set.
-                      split_idx['test-dev'],  # Held-out unlabeled test dev.
-                      split_idx['test-challenge']  # Held-out challenge test set.
-                      ]
-
-        dataset = dataset[torch.cat(split_idxs)]
-        data_list = [data for data in dataset]
-        dataset._indices = None
-        dataset._data_list = data_list
-        dataset.data, dataset.slices = dataset.collate(data_list)
-        n1, n2, n3 = len(split_idxs[0]), len(split_idxs[1]), len(split_idxs[2])
-        split_idxs = [list(range(n1)),
-                      list(range(n1, n1 + n2)),
-                      list(range(n1 + n2, n1 + n2 + n3))]
-        # Check prediction targets.
-        assert (all([not torch.isnan(dataset[i].y)[0] for i in split_idxs[0]]))
-        assert (all([torch.isnan(dataset[i].y)[0] for i in split_idxs[1]]))
-        assert (all([torch.isnan(dataset[i].y)[0] for i in split_idxs[2]]))
-
-    else:
-        raise ValueError(f'Unexpected OGB PCQM4Mv2 subset choice: {name}')
-    dataset.split_idxs = split_idxs
-    return dataset
-
-
-def preformat_PCQM4Mv2Contact(dataset_dir, name):
-    """Load PCQM4Mv2-derived molecular contact link prediction dataset.
-
-    Note: This dataset requires RDKit dependency!
-
-    Args:
-       dataset_dir: path where to store the cached dataset
-       name: the type of dataset split: 'shuffle', 'num-atoms'
-
-    Returns:
-       PyG dataset object
-    """
-    try:
-        # Load locally to avoid RDKit dependency until necessary
-        from graphgym.loader.dataset.pcqm4mv2_contact import \
-            PygPCQM4Mv2ContactDataset, \
-            structured_neg_sampling_transform
-    except Exception as e:
-        logging.error('ERROR: Failed to import PygPCQM4Mv2ContactDataset, '
-                      'make sure RDKit is installed.')
-        raise e
-
-    split_name = name.split('-', 1)[1]
-    dataset = PygPCQM4Mv2ContactDataset(dataset_dir, subset='530k')
-    # Inductive graph-level split (there is no train/test edge split).
-    s_dict = dataset.get_idx_split(split_name)
-    dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
-    if cfg.dataset.resample_negative:
-        dataset.transform = structured_neg_sampling_transform
-    return dataset
-
-
-def preformat_Peptides(dataset_dir, name):
-    """Load Peptides dataset, functional or structural.
-
-    Note: This dataset requires RDKit dependency!
-
-    Args:
-        dataset_dir: path where to store the cached dataset
-        name: the type of dataset split:
-            - 'peptides-functional' (10-task classification)
-            - 'peptides-structural' (11-task regression)
-
-    Returns:
-        PyG dataset object
-    """
-    try:
-        # Load locally to avoid RDKit dependency until necessary.
-        from graphgym.loader.dataset.peptides_functional import \
-            PeptidesFunctionalDataset
-        from graphgym.loader.dataset.peptides_structural import \
-            PeptidesStructuralDataset
-    except Exception as e:
-        logging.error('ERROR: Failed to import Peptides dataset class, '
-                      'make sure RDKit is installed.')
-        raise e
-
-    dataset_type = name.split('-', 1)[1]
-    if dataset_type == 'functional':
-        dataset = PeptidesFunctionalDataset(dataset_dir)
-    elif dataset_type == 'structural':
-        dataset = PeptidesStructuralDataset(dataset_dir)
-    s_dict = dataset.get_idx_split()
-    dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
     return dataset
 
 
@@ -973,57 +615,6 @@ def preformat_ZINC(dataset_dir, name):
          for split in ['train', 'val', 'test']]
     )
     return dataset
-
-
-def preformat_AQSOL(dataset_dir):
-    """Load and preformat AQSOL datasets.
-
-    Args:
-        dataset_dir: path where to store the cached dataset
-
-    Returns:
-        PyG dataset object
-    """
-    dataset = join_dataset_splits(
-        [AQSOL(root=dataset_dir, split=split)
-         for split in ['train', 'val', 'test']]
-    )
-    return dataset
-
-
-def preformat_VOCSuperpixels(dataset_dir, name, slic_compactness):
-    """Load and preformat VOCSuperpixels dataset.
-
-    Args:
-        dataset_dir: path where to store the cached dataset
-    Returns:
-        PyG dataset object
-    """
-    dataset = join_dataset_splits(
-        [VOCSuperpixels(root=dataset_dir, name=name,
-                        slic_compactness=slic_compactness,
-                        split=split)
-         for split in ['train', 'val', 'test']]
-    )
-    return dataset
-
-
-def preformat_COCOSuperpixels(dataset_dir, name, slic_compactness):
-    """Load and preformat COCOSuperpixels dataset.
-
-    Args:
-        dataset_dir: path where to store the cached dataset
-    Returns:
-        PyG dataset object
-    """
-    dataset = join_dataset_splits(
-        [COCOSuperpixels(root=dataset_dir, name=name,
-                         slic_compactness=slic_compactness,
-                         split=split)
-         for split in ['train', 'val', 'test']]
-    )
-    return dataset
-
 
 def join_dataset_splits(datasets):
     """Join train, val, test datasets into one dataset object.
@@ -1217,3 +808,57 @@ def set_virtual_node(dataset):
     if dataset.transform_list is None:
         dataset.transform_list = []
     dataset.transform_list.append(VirtualNodePatchSingleton())
+
+
+def set_copt(dataset):
+
+    def set_graph_stats(data):
+        g = to_networkx(data)
+        if isinstance(g, nx.DiGraph):
+            g = g.to_undirected()
+        # Derive adjacency matrix
+        adj = torch.from_numpy(nx.to_numpy_array(g))
+        num_nodes = adj.size(0)
+
+        deg, _ = compute_degrees(adj, log_transform=True)
+        ecc, _ = compute_eccentricity(g)
+        clu, _ = compute_cluster_coefficient(g)
+        tri, _ = compute_triangle_count(g)
+
+        data.x = torch.cat([deg, ecc, clu, tri], dim=1).float()
+        return data
+
+    def set_maxcut(data):
+        g = to_networkx(data)
+        if isinstance(g, nx.DiGraph):
+            g = g.to_undirected()
+        # Derive adjacency matrix
+        adj = torch.from_numpy(nx.to_numpy_array(g))
+        num_nodes = adj.size(0)
+
+        cut = dnx.maximum_cut(g, dimod.SimulatedAnnealingSampler())
+        cut_size = max(len(cut), g.number_of_nodes() - len(cut))
+        cut_binary = torch.zeros((num_nodes, 1), dtype=torch.int)
+        cut_binary[torch.tensor(list(cut))] = 1
+
+        data.cut_size = cut_size,
+        data.cut_binary = cut_binary
+        return data
+
+    def set_maxclique(data):
+        g = to_networkx(data)
+        if isinstance(g, nx.DiGraph):
+            g = g.to_undirected()
+        # target = {"mc_size": max(len(clique) for clique in nx.find_cliques(g))}
+        data.mc_size = max(len(clique) for clique in nx.find_cliques(g))
+        return data
+
+    if dataset.transform_list is None:
+        dataset.transform_list = [set_graph_stats]
+    else:
+        dataset.transform_list.append(set_graph_stats)
+
+    if cfg.train.task == 'maxcut':
+        dataset.transform_list.append(set_maxcut)
+    elif cfg.train.task == 'maxclique':
+        dataset.transform_list.append(set_maxclique)
