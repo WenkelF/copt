@@ -36,19 +36,12 @@ class COPTModule(GraphGymModule):
         scheduler = create_scheduler(optimizer, self.cfg.optim)
         return [optimizer], [scheduler]
 
-    # def _shared_step(self, batch, split: str) -> Dict:
-    #     batch.split = split
-    #     pred, true = self(batch)
-    #     loss, pred_score = compute_loss(pred, true)
-    #     step_end_time = time.time()
-    #     return dict(loss=loss, true=true, pred_score=pred_score.detach(),
-    #                 step_end_time=step_end_time)
-
     def training_step(self, batch, *args, **kwargs):
         batch.split = "train"
         batch = self.forward(batch)
         loss = self.loss_func(batch)
         step_end_time = time.time()
+        self.log("loss/train", loss, batch_size=batch.batch_size, on_step=True, prog_bar=True, logger=True)
         return dict(loss=loss, step_end_time=step_end_time)
 
     def validation_step(self, batch, *args, **kwargs):
@@ -57,9 +50,11 @@ class COPTModule(GraphGymModule):
         loss = self.loss_func(batch)
         step_end_time = time.time()
         eval_dict = dict(loss=loss, step_end_time=step_end_time)
+        self.log("loss/valid", loss, batch_size=batch.batch_size, on_epoch=True, prog_bar=True, logger=True)
         for eval_type, eval_func in self.eval_func_dict.items():
             eval = eval_func(batch)
             eval_dict.update({eval_type: eval})
+            self.log("".join([eval_type, "/valid"]), eval, batch_size=batch.batch_size, on_epoch=True, prog_bar=True, logger=True)
         return eval_dict
 
     def test_step(self, batch, *args, **kwargs):
@@ -67,9 +62,11 @@ class COPTModule(GraphGymModule):
         loss = self.loss_func(batch)
         step_end_time = time.time()
         eval_dict = dict(loss=loss, step_end_time=step_end_time)
+        self.log("loss/test", loss, batch_size=batch.batch_size, on_epoch=True, prog_bar=True, logger=True)
         for eval_type, eval_func in self.eval_func_dict.items():
             eval = eval_func(batch)
             eval_dict.update({eval_type: eval})
+            self.log("".join([eval_type, "/test"]), eval, batch_size=batch.batch_size, on_epoch=True, prog_bar=True, logger=True)
         return eval_dict
 
     @property
