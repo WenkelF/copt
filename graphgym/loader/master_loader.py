@@ -240,9 +240,13 @@ def load_dataset_master(format, name, dataset_dir):
             raise ValueError(f"Unexpected PyG Dataset identifier: {format}")
 
     elif format == 'er':
-        # Custom loader for NetworkX-based datasets from the GraphGym paper.
-        dataset_dir = osp.join(dataset_dir, 'er')
-        dataset = ERDataset(dataset_dir)
+        tf_list = [set_graph_stats]
+        if cfg.train.task == 'maxcut':
+            tf_list.append(set_maxcut)
+        elif cfg.train.task == 'maxclique':
+            tf_list.append(set_maxclique)
+
+        dataset = ERDataset(osp.join(dataset_dir, 'er'), pre_transform=T.Compose(tf_list))
 
     # GraphGym default loader for Pytorch Geometric datasets
     elif format == 'PyG':
@@ -321,9 +325,6 @@ def load_dataset_master(format, name, dataset_dir):
 
     if cfg.virtual_node:
         set_virtual_node(dataset)
-
-    if cfg.train.task is not None:
-        set_copt(dataset)
 
     if dataset.transform_list is not None:
         dataset.transform = T.Compose(dataset.transform_list)
@@ -813,60 +814,47 @@ def set_virtual_node(dataset):
         dataset.transform_list = []
     dataset.transform_list.append(VirtualNodePatchSingleton())
 
+def set_graph_stats(data):
+    g = to_networkx(data)
+    if isinstance(g, nx.DiGraph):
+        g = g.to_undirected()
+    # Derive adjacency matrix
+    adj = torch.from_numpy(nx.to_numpy_array(g))
 
-def set_copt(dataset):
+    deg, _ = compute_degrees(adj, log_transform=True)
+    ecc, _ = compute_eccentricity(g)
+    clu, _ = compute_cluster_coefficient(g)
+    tri, _ = compute_triangle_count(g)
 
-    def set_graph_stats(data):
-        g = to_networkx(data)
-        if isinstance(g, nx.DiGraph):
-            g = g.to_undirected()
-        # Derive adjacency matrix
-        adj = torch.from_numpy(nx.to_numpy_array(g))
+    data.x = torch.cat([deg, ecc, clu, tri], dim=1).float()
+    return data
 
-        deg, _ = compute_degrees(adj, log_transform=True)
-        ecc, _ = compute_eccentricity(g)
-        clu, _ = compute_cluster_coefficient(g)
-        tri, _ = compute_triangle_count(g)
+def compute_maxcut(g):
+    adj = torch.from_numpy(nx.to_numpy_array(g))
+    num_nodes = adj.size(0)
 
-        data.x = torch.cat([deg, ecc, clu, tri], dim=1).float()
-        return data
+    cut = dnx.maximum_cut(g, dimod.SimulatedAnnealingSampler())
+    cut_size = max(len(cut), g.number_of_nodes() - len(cut))
+    cut_binary = torch.zeros((num_nodes, 1), dtype=torch.int)
+    cut_binary[torch.tensor(list(cut))] = 1
 
-    def compute_maxcut(g):
-        adj = torch.from_numpy(nx.to_numpy_array(g))
-        num_nodes = adj.size(0)
+    return cut_size, cut_binary
 
-        cut = dnx.maximum_cut(g, dimod.SimulatedAnnealingSampler())
-        cut_size = max(len(cut), g.number_of_nodes() - len(cut))
-        cut_binary = torch.zeros((num_nodes, 1), dtype=torch.int)
-        cut_binary[torch.tensor(list(cut))] = 1
+def set_maxcut(data):
+    g = to_networkx(data)
+    if isinstance(g, nx.DiGraph):
+        g = g.to_undirected()
+    # Derive adjacency matrix
+    cut_size, cut_binary = compute_maxcut(g)
 
-        return cut_size, cut_binary
+    data.cut_size = cut_size,
+    data.cut_binary = cut_binary
+    return data
 
-    def set_maxcut(data):
-        g = to_networkx(data)
-        if isinstance(g, nx.DiGraph):
-            g = g.to_undirected()
-        # Derive adjacency matrix
-        cut_size, cut_binary = compute_maxcut(g)
-
-        data.cut_size = cut_size,
-        data.cut_binary = cut_binary
-        return data
-
-    def set_maxclique(data):
-        g = to_networkx(data)
-        if isinstance(g, nx.DiGraph):
-            g = g.to_undirected()
-        # target = {"mc_size": max(len(clique) for clique in nx.find_cliques(g))}
-        data.mc_size = max(len(clique) for clique in nx.find_cliques(g))
-        return data
-
-    if dataset.transform_list is None:
-        dataset.transform_list = [set_graph_stats]
-    else:
-        dataset.transform_list.append(set_graph_stats)
-
-    if cfg.train.task == 'maxcut':
-        dataset.transform_list.append(set_maxcut)
-    elif cfg.train.task == 'maxclique':
-        dataset.transform_list.append(set_maxclique)
+def set_maxclique(data):
+    g = to_networkx(data)
+    if isinstance(g, nx.DiGraph):
+        g = g.to_undirected()
+    # target = {"mc_size": max(len(clique) for clique in nx.find_cliques(g))}
+    data.mc_size = max(len(clique) for clique in nx.find_cliques(g))
+    return data
