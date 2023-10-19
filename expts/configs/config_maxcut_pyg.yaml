@@ -8,7 +8,7 @@ constants:
   wandb:
     name: test-pyg
     project: copt
-    entity: ts-forecasting
+    entity: wenkelf
 
 datamodule:
   task: &task maxcut
