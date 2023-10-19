@@ -8,18 +8,15 @@ constants:
   wandb:
     name: test-pyg
     project: copt
-    entity: ts-forecasting
+    entity: wenkelf
 
 datamodule:
-  task: &task maxcut
+  task: &task maxclique
   data_dir: *data_dir
   regenerate: false
   backend: pyg
   data_kwargs:
-    num_samples: 10000
-    n_min: 8
-    n_max: 15
-    p: 0.4
+    from_existing: collab
     supp_matrices: ["edge_index"]
   feat_kwargs:
     degree:
@@ -40,13 +37,13 @@ datamodule:
       level: node
       norm: true
   train_ds_kwargs:
-    frac: 0.85
+    frac: 0.80
     label: false
   valid_ds_kwargs:
     frac: 0.10
     label: true
   test_ds_kwargs:
-    frac: 0.05
+    frac: 0.10
     label: true
   batch_size_train: 256
   batch_size_valid: 1024
@@ -65,6 +62,11 @@ architecture:
     # num_layers: 2
     # output_dim: 1
     # last_activation: none
+  loss_kwargs:
+    beta: 0.1
+  eval_kwargs:
+    mc_ratio:
+      dec_length: 100
 
 training:
   optimizer_kwargs:
@@ -77,7 +79,7 @@ training:
   train_kwargs:
     accelerator: *device
     min_epochs: 2
-    max_epochs: 400
+    max_epochs: 50
     check_val_every_n_epoch: 1
     precision: 32-true
     # stopping_patience: 10

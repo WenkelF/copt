@@ -11,6 +11,57 @@ def accuracy(output, target):
     return torch.mean((output.argmax(-1) == target).float())
 
 
+def maxclique_loss_pyg(batch, beta=0.1):
+
+    data_list = batch.to_data_list()
+
+    loss = 0.0
+    for data in data_list:
+        src, dst = data.edge_index[0], data.edge_index[1]
+
+        loss1 = torch.sum(data.x[src] * data.x[dst])
+        loss2 = data.x.sum() ** 2 - loss1 - torch.sum(data.x ** 2)
+        loss += (- loss1 + beta * loss2) * data.num_nodes
+
+    return loss / batch.size(0)
+
+
+def maxclique_ratio_pyg(batch, dec_length=300):
+
+    batch = maxclique_decoder_pyg(batch, dec_length=dec_length)
+
+    data_list = batch.to_data_list()
+
+    metric_list = []
+    for data in data_list:
+        metric_list.append(data.c.sum() / data.mc_size)
+
+    return torch.Tensor(metric_list).mean()
+
+
+def maxclique_decoder_pyg(batch, dec_length=300):
+
+    data_list = batch.to_data_list()
+
+    for data in data_list:
+        order = torch.argsort(data.x, dim=0, descending=True)
+        c = torch.zeros_like(data.x)
+
+        src, dst = data.edge_index[0], data.edge_index[1]
+        
+        c[order[0]] = 1
+        for idx in range(1, min(dec_length, data.num_nodes)):
+            c[order[idx]] = 1
+
+            cTWc = torch.sum(c[src] * c[dst])
+            if c.sum() ** 2 - cTWc - torch.sum(c ** 2) != 0:
+                c[order[idx]] = 0
+
+        data.c = c
+
+    return Batch.from_data_list(data_list)
+
+
 def maxclique_loss(output, data, beta=0.1):
 
     adj = data.get('adj')
