@@ -2,6 +2,19 @@ from typing import Dict, Any
 
 import torch
 
+
+def min_max_norm_pyg(x: torch.Tensor, data: Dict[str, Any]):
+
+    batch_size = data.batch.max().item() + 1
+    min_x, max_x = torch.zeros(x.shape, dtype=torch.float64).to(x.device), torch.zeros(x.shape, dtype=torch.float64).to(x.device)
+    for batch in range(batch_size):
+        batch_indicator = data.batch == batch
+        batch_x = x[batch_indicator]
+        min_x[batch_indicator] = batch_x.min()
+        max_x[batch_indicator] = batch_x.max()
+    
+    return (x - min_x) / torch.maximum((max_x - min_x), 1e-12 * torch.ones_like(max_x))
+
 def min_max_norm(x: torch.Tensor, data: Dict[str, Any]):
 
     # for sample_idx in range(x.size(0)):
