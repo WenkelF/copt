@@ -246,7 +246,15 @@ def load_dataset_master(format, name, dataset_dir):
         elif cfg.train.task == 'maxclique':
             tf_list.append(set_maxclique)
 
+        def set_y(data):
+            if cfg.train.task == 'maxcut':
+                data.y = data.cut_binary
+            elif cfg.train.task == 'maxclique':
+                data.y = data.mc_size,
+            return data
+
         dataset = ERDataset(osp.join(dataset_dir, 'er'), pre_transform=T.Compose(tf_list))
+        pre_transform_in_memory(dataset, set_y, show_progress=True)
 
     # GraphGym default loader for Pytorch Geometric datasets
     elif format == 'PyG':
