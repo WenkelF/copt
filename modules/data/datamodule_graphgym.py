@@ -51,8 +51,7 @@ def train(model: GraphGymModule, datamodule, logger: bool = True,
         devices='auto' if not torch.cuda.is_available() else cfg.devices,
     )
 
-    use_wandb = cfg.wandb.pop('use')
-    if use_wandb:
+    if cfg.wandb.use:
         trainer.logger = WandbLogger(**cfg.wandb)
 
     trainer.fit(model, datamodule=datamodule)

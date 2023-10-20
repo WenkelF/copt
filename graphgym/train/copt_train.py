@@ -44,3 +44,7 @@ def train_copt(cfg, loaders, model):
     #predictor = load_predictor(cfg, model, loss_func, eval_func_dict)
 
     train(model, datamodule)
+    # close wandb
+    if cfg.wandb.use:
+        run.finish()
+        run = None
