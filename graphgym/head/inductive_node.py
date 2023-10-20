@@ -56,8 +56,6 @@ class COPTInductiveNodeHead(nn.Module):
             new_layer_config(dim_in, dim_out, cfg.gnn.layers_post_mp,
                              has_act=False, has_bias=True, cfg=cfg))
         self.last_act = None if cfg.gnn.last_act is None else register.act_dict[cfg.gnn.last_act]()
-        # self.act = cfg.gnn.last_norm
-
 
     def forward(self, batch):
         batch = self.layer_post_mp(batch)

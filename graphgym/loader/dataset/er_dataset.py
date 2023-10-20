@@ -37,20 +37,7 @@ class ERDataset(InMemoryDataset):
         if isinstance(g, nx.DiGraph):
             g = g.to_undirected()
 
-        # adj = torch.from_numpy(nx.to_numpy_array(g))
-        #
-        # deg, _ = compute_degrees(adj, log_transform=True)
-        # ecc, _ = compute_eccentricity(g)
-        # clu, _ = compute_cluster_coefficient(g)
-        # tri, _ = compute_triangle_count(g)
-
         g_pyg = from_networkx(g)
-        # g_pyg.x = torch.cat([deg, ecc, clu, tri], dim=1).float()
-        #
-        # cut_size, cut_binary = compute_maxcut(g)
-        # g_pyg.cut_size = cut_size,
-        # g_pyg.cut_binary = cut_binary
-        # g_pyg.mc_size = max(len(clique) for clique in nx.find_cliques(g))
         return g_pyg
 
     def process(self):
