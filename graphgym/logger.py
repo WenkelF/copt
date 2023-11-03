@@ -188,22 +188,6 @@ class CustomLogger(Logger):
 
         return results
 
-    def subtoken_prediction(self):
-        from ogb.graphproppred import Evaluator
-        evaluator = Evaluator('ogbg-code2')
-
-        seq_ref_list = []
-        seq_pred_list = []
-        for seq_pred, seq_ref in zip(self._pred, self._true):
-            seq_ref_list.extend(seq_ref)
-            seq_pred_list.extend(seq_pred)
-
-        input_dict = {"seq_ref": seq_ref_list, "seq_pred": seq_pred_list}
-        result = evaluator.eval(input_dict)
-        result['f1'] = result['F1']
-        del result['F1']
-        return result
-
     def regression(self):
         # NOTE: assumes that true / pred are 2d arrays
         true, pred = torch.cat(self._true).numpy(), torch.cat(self._pred).numpy()
@@ -258,27 +242,8 @@ class CustomLogger(Logger):
 
     def update_stats(self, true, pred, batch_idx, loss, lr, time_used, params,
                      dataset_name=None, **kwargs):
-        if dataset_name == 'ogbg-code2':
-            assert true['y_arr'].shape[1] == len(pred)  # max_seq_len (5)
-            assert true['y_arr'].shape[0] == pred[0].shape[0]  # batch size
-            batch_size = true['y_arr'].shape[0]
-
-            # Decode the predicted sequence tokens, so we don't need to store
-            # the logits that take significant memory.
-            from graphgym.loader.ogbg_code2_utils import idx2vocab, \
-                decode_arr_to_seq
-            arr_to_seq = lambda arr: decode_arr_to_seq(arr, idx2vocab)
-            mat = []
-            for i in range(len(pred)):
-                mat.append(torch.argmax(pred[i].detach(), dim=1).view(-1, 1))
-            mat = torch.cat(mat, dim=1)
-            seq_pred = [arr_to_seq(arr) for arr in mat]
-            seq_ref = [true['y'][i] for i in range(len(true['y']))]
-            pred = seq_pred
-            true = seq_ref
-        else:
-            assert true.shape[0] == pred.shape[0]
-            batch_size = true.shape[0]
+        assert true.shape[0] == pred.shape[0]
+        batch_size = true.shape[0]
         self._iter += 1
         self._true.append(true)
         self._pred.append(pred)
@@ -307,8 +272,6 @@ class CustomLogger(Logger):
             task_stats = self.classification_multi()
         elif self.task_type in ['classification_multilabel', 'multilabel']:
             task_stats = self.classification_multilabel()
-        elif self.task_type == 'subtoken_prediction':
-            task_stats = self.subtoken_prediction()
         else:
             raise ValueError('Task has to be regression or classification')
 

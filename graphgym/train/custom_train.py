@@ -13,7 +13,6 @@ from torch_geometric.graphgym.register import register_train
 from torch_geometric.graphgym.utils.epoch import is_eval_epoch, is_ckpt_epoch
 
 from graphgym.loss.cosim import cosim_losses, mae_cosim_losses
-from graphgym.loss.subtoken_prediction_loss import subtoken_cross_entropy
 from graphgym.utils import cfg_to_dict, flatten_dict, make_wandb_name
 
 
@@ -51,8 +50,7 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
         batch.to(torch.device(cfg.accelerator))
 
         if cfg.optim.optimizer == "ASAM":
-            assert cfg.model.loss_fun not in ["cosim_col_sep", "ogbg-code2",
-                                              "mae_cosim_col_sep"]
+            assert cfg.model.loss_fun not in ["cosim_col_sep", "mae_cosim_col_sep"]
             # Ascent
             pred, true = model(batch.clone())
             pred, true = ensure_transductive_batch(pred, true, batch)
@@ -67,8 +65,7 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
             loss.backward()
             optimizer.descent_step()
         elif "FLAG" in cfg.optim.optimizer:
-            assert cfg.model.loss_fun not in ["cosim_col_sep", "ogbg-code2",
-                                              "mae_cosim_col_sep"]
+            assert cfg.model.loss_fun not in ["cosim_col_sep", "mae_cosim_col_sep"]
             loss, pred_score, true = optimizer.flag(model, batch, compute_loss)
             batch_idx = process_batch_idx(batch.batch, true)
         else:
@@ -79,8 +76,6 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
                 loss, pred_score = cosim_losses(pred, true, batch_idx)
             elif cfg.model.loss_fun == "mae_cosim_col_sep":
                 loss, pred_score = mae_cosim_losses(pred, true, batch_idx)
-            elif cfg.dataset.name == 'ogbg-code2':
-                loss, pred_score = subtoken_cross_entropy(pred, true)
             else:
                 loss, pred_score = compute_loss(pred, true)
             loss.backward()
@@ -128,8 +123,6 @@ def eval_epoch(logger, loader, model, split='val'):
             loss, pred_score = cosim_losses(pred, true, batch_idx)
         elif cfg.model.loss_fun == "mae_cosim_col_sep":
             loss, pred_score = mae_cosim_losses(pred, true, batch_idx)
-        elif cfg.dataset.name == 'ogbg-code2':
-            loss, pred_score = subtoken_cross_entropy(pred, true)
         else:
             loss, pred_score = compute_loss(pred, true)
 

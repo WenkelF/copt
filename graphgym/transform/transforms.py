@@ -108,10 +108,6 @@ def clip_graphs_to_size(data, size_limit=5000):
             data.num_nodes = size_limit
         else:
             data.num_nodes = size_limit
-        if hasattr(data, 'node_is_attributed'):  # for ogbg-code2 dataset
-            data.node_is_attributed = data.node_is_attributed[:size_limit]
-            data.node_dfs_order = data.node_dfs_order[:size_limit]
-            data.node_depth = data.node_depth[:size_limit]
         data.edge_index = edge_index
         if hasattr(data, 'edge_attr'):
             data.edge_attr = edge_attr

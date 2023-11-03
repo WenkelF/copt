@@ -3,7 +3,6 @@ from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.models.encoder import AtomEncoder
 from torch_geometric.graphgym.register import register_node_encoder
 
-from graphgym.encoder.ast_encoder import ASTNodeEncoder
 from graphgym.encoder.equivstable_laplace_pos_encoder import EquivStableLapPENodeEncoder
 from graphgym.encoder.gnn_encoder import GNNNodeEncoder
 from graphgym.encoder.graphlog_encoder import GraphLogNodeEncoder
