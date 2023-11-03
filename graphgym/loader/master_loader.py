@@ -65,10 +65,7 @@ def log_loaded_dataset(dataset, format, name):
         logging.info(f"  num tasks: {dataset.num_tasks}")
 
     if hasattr(dataset.data, 'y') and dataset.data.y is not None:
-        if isinstance(dataset.data.y, list):
-            # A special case for ogbg-code2 dataset.
-            logging.info(f"  num classes: n/a")
-        elif dataset.data.y.numel() == dataset.data.y.size(0) and \
+        if dataset.data.y.numel() == dataset.data.y.size(0) and \
                 torch.is_floating_point(dataset.data.y):
             logging.info(f"  num classes: (appears to be a regression task)")
         else:
@@ -216,6 +213,15 @@ def load_dataset_master(format, name, dataset_dir):
         PyG dataset object with applied perturbation transforms and data splits
     """
     if format.startswith('PyG-'):
+        tf_list = []
+        if cfg.dataset.set_graph_stats:
+            tf_list.append(set_graph_stats)
+        if cfg.train.task == 'maxcut':
+            tf_list.append(set_maxcut)
+        elif cfg.train.task == 'maxclique':
+            tf_list.append(set_maxclique)
+        tf_list.append(set_y)
+
         pyg_dataset_id = format.split('-', 1)[1]
         dataset_dir = osp.join(dataset_dir, pyg_dataset_id)
 
@@ -239,19 +245,14 @@ def load_dataset_master(format, name, dataset_dir):
         else:
             raise ValueError(f"Unexpected PyG Dataset identifier: {format}")
 
+        pre_transform_in_memory(dataset, T.Compose(tf_list), show_progress=True)
+
     elif format == 'er':
         tf_list = [set_graph_stats]
         if cfg.train.task == 'maxcut':
             tf_list.append(set_maxcut)
         elif cfg.train.task == 'maxclique':
             tf_list.append(set_maxclique)
-
-        def set_y(data):
-            if cfg.train.task == 'maxcut':
-                data.y = data.cut_binary
-            elif cfg.train.task == 'maxclique':
-                data.y = data.mc_size,
-            return data
 
         dataset = ERDataset(osp.join(dataset_dir, 'er'), pre_transform=T.Compose(tf_list))
         pre_transform_in_memory(dataset, set_y, show_progress=True)
@@ -865,4 +866,12 @@ def set_maxclique(data):
         g = g.to_undirected()
     # target = {"mc_size": max(len(clique) for clique in nx.find_cliques(g))}
     data.mc_size = max(len(clique) for clique in nx.find_cliques(g))
+    return data
+
+
+def set_y(data):
+    if cfg.train.task == 'maxcut':
+        data.y = data.cut_binary
+    elif cfg.train.task == 'maxclique':
+        data.y = data.mc_size,
     return data
