@@ -54,7 +54,7 @@ gnn:
   layers_mp: 12
   layers_post_mp: 1
   dim_inner: 256
-  layer_type: ginconv
+  layer_type: hybridconv
   stage_type: skipsum
   batchnorm: true
   act: relu
