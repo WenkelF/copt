@@ -2,6 +2,7 @@ import datetime
 import os
 import torch
 import logging
+import argparse
 
 import graphgym  # noqa, register custom modules
 from graphgym.agg_runs import agg_runs
@@ -113,9 +114,22 @@ def run_loop_settings(cfg, args):
     return run_ids, seeds, split_indices
 
 
+def adapt_args(args):
+
+    opts = args.opts
+    adapted_opts = []
+    for opt in opts:
+        adapted_opts.extend(opt.split('='))
+
+    args.opts = adapted_opts
+
+    return args
+
+
 if __name__ == '__main__':
     # Load cmd line args
     args = parse_args()
+    args = adapt_args(args)
     # Load config file
     set_cfg(cfg)
     cfg.train.mode = None  # XXX: temporary fix, need to register train.mode

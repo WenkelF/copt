@@ -1,0 +1,23 @@
+command:
+  - python
+  - ${program}
+  - --cfg
+  - copt_graphgym/configs/maxcut_er.yaml
+  - ${args_no_hyphens}
+
+name: test
+method: grid
+
+metric:
+  name: acc
+  goal: maximize
+
+parameters:
+  gnn.layers_mp:
+    values:
+        - 4
+        - 8
+  optim.max_epoch:
+    value: 10
+
+program: main_graphgym.py
