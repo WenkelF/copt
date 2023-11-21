@@ -1,7 +1,6 @@
 from typing import Optional, Callable, List
 
 import os.path as osp
-import time
 
 import numpy as np
 import networkx as nx
@@ -9,14 +8,14 @@ import torch
 from torch_geometric.data import InMemoryDataset
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.utils.convert import from_networkx
+from networkx.algorithms import bipartite
 
 from graphgym.utils import parallelize_fn
 
 
-class ERDataset(InMemoryDataset):
-    def __init__(self, format, root, transform=None, pre_transform=None, multiprocessing=False):
+class BPDataset(InMemoryDataset):
+    def __init__(self, format, root, transform=None, pre_transform=None):
         self.format = format
-        self.multiprocessing = multiprocessing
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0])
         self.name = ''
@@ -29,11 +28,17 @@ class ERDataset(InMemoryDataset):
     def processed_file_names(self):
         return ['data.pt']
 
-    def create_graph(self, idx):
-        n = np.random.randint(cfg[self.format].n_min, cfg[self.format].n_max + 1)
-        g = nx.fast_gnp_random_graph(n, p=cfg[self.format].p)
-        while not nx.is_connected(g):
-            g = nx.fast_gnp_random_graph(n, p=cfg[self.format].p)
+    def create_graph(self):
+        part_sizes = np.random.poisson(cfg[self.format].mean, 2)
+        part_sizes = np.maximum(np.minimum(part_sizes, cfg[self.format].n_max), cfg[self.format].n_min)
+        g_bp = bipartite.random_graph(*part_sizes, cfg[self.format].p_edge_bp)
+        while not nx.is_connected(g_bp):
+            g_bp = bipartite.random_graph(*np.random.poisson(cfg[self.format].mean, 2), cfg[self.format].p_edge_bp)
+        
+        num_nodes = len(g_bp.nodes)
+        g_er = nx.erdos_renyi_graph(num_nodes, cfg[self.format].p_edge_er)
+
+        g = nx.compose(g_bp, g_er)
 
         if isinstance(g, nx.DiGraph):
             g = g.to_undirected()

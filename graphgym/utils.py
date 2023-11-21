@@ -3,6 +3,7 @@ import logging
 from typing import Any, List, Optional
 
 import torch
+import multiprocessing
 from torch import Tensor
 from torch_geometric.utils import degree
 from torch_geometric.utils import remove_self_loops
@@ -203,3 +204,9 @@ def grouper(iterable, n: int, *, fillvalue: Optional[Any] = None):
 
     """
     return itertools.zip_longest(*([iter(iterable)] * n), fillvalue=fillvalue)
+
+
+def parallelize_fn(instances, fn, num_processes):
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        results = pool.map(fn, instances)
+    return results

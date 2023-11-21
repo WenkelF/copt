@@ -32,6 +32,7 @@ from yacs.config import CfgNode as CN
 from graphgym.encoder.gnn_encoder import gpse_process_batch
 from graphgym.head.identity import IdentityHead
 from graphgym.loader.dataset.er_dataset import ERDataset
+from graphgym.loader.dataset.bp_dataset import BPDataset
 from graphgym.loader.dataset.synthetic_wl import SyntheticWL
 from graphgym.loader.split_generator import prepare_splits, set_dataset_splits
 from graphgym.transform.gnn_hash import GraphNormalizer, RandomGNNHash
@@ -247,14 +248,17 @@ def load_dataset_master(format, name, dataset_dir):
 
         pre_transform_in_memory(dataset, T.Compose(tf_list), show_progress=True)
 
-    elif format == 'er':
+    elif format.startswith('er') or format.startswith('bp'):
         tf_list = [set_graph_stats]
         if cfg.train.task == 'maxcut':
             tf_list.append(set_maxcut)
         elif cfg.train.task == 'maxclique':
             tf_list.append(set_maxclique)
-
-        dataset = ERDataset(osp.join(dataset_dir, 'er'), pre_transform=T.Compose(tf_list))
+        
+        if format.startswith('er'):
+            dataset = ERDataset(format, osp.join(dataset_dir, format), pre_transform=T.Compose(tf_list), multiprocessing=cfg.dataset.multiprocessing)
+        elif format.startswith('bp'):
+            dataset = BPDataset(format, osp.join(dataset_dir, format), pre_transform=T.Compose(tf_list))
         pre_transform_in_memory(dataset, set_y, show_progress=True)
 
     # GraphGym default loader for Pytorch Geometric datasets
