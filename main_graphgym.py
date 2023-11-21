@@ -115,7 +115,6 @@ def run_loop_settings(cfg, args):
 
 
 def adapt_args(args):
-
     opts = args.opts
     adapted_opts = []
     for opt in opts:

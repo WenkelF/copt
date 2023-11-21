@@ -103,7 +103,7 @@ def concat_node_encoders(encoder_classes, pe_enc_names):
 
 # Dataset-specific node encoders.
 ds_encs = {'Atom': AtomEncoder,
-           'ASTNode': ASTNodeEncoder,
+        #    'ASTNode': ASTNodeEncoder,
            'PPANode': PPANodeEncoder,
            'TypeDictNode': TypeDictNodeEncoder,
            'VOCNode': VOCNodeEncoder,
