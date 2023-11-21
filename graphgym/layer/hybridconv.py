@@ -5,11 +5,13 @@ from torch import Tensor
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
 from torch_geometric.nn.dense.linear import Linear
-from torch_geometric.typing import Adj, OptTensor, SparseTensor
+from torch_geometric.nn.models import MLP
+from torch_geometric.typing import SparseTensor
 from torch_geometric.utils import spmm
 from torch_geometric.nn.inits import glorot
 
@@ -72,10 +74,9 @@ class HybridConv(MessagePassing):
             output_dim: int,
             channel_list: List[Tuple[int]] = [[1], [2], [4], [0, 1], [1, 2], [2, 4]],
             combine_fn: str = 'cat',
-            # activation: str = 'relu',
-            activation_channel: str = 'abs',
-            # num_heads: int = None,
-            # cached: bool = False,
+            residual: bool = False,
+            activation_channel: str = 'relu',
+            num_heads: int = 1,
             add_self_loops: bool = True,
             bias: bool = True,
             **kwargs
@@ -84,26 +85,30 @@ class HybridConv(MessagePassing):
         super().__init__(**kwargs)
 
         num_channels = len(channel_list)
+        if residual:
+            num_channels += 1
 
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.channel_list = channel_list
+        self.residual = residual
         self.radius_list = list(set([agg for channel in channel_list for agg in channel]))
         self.radius_list.sort()
         self.combine_fn = combine_fn
+        self.num_heads = num_heads
         self.add_self_loops = add_self_loops
-
-        self.lin = Linear(input_dim, output_dim, bias=bias)
-        # self.activation = ACTIVATION_DICT[activation]
         self.activation_channel = ACTIVATION_DICT[activation_channel]
-        # self.lin_channel = Linear(input_dim, output_dim, bias=bias)
 
         if self.combine_fn == 'cat':
             self.lin_combine = Linear(num_channels * output_dim, output_dim, bias=bias)
         elif self.combine_fn == 'att':
-            self.att_pre = nn.Parameter(torch.empty(1, output_dim))
-            self.att_channel = nn.Parameter(torch.empty(1, output_dim))
+            self.lin_att_list = nn.ModuleList()
+            for _ in range(len(self.channel_list) + 1):
+                self.lin_att_list.append(Linear(input_dim, output_dim, bias=bias))
+            self.att_pre = nn.Parameter(torch.empty(output_dim, self.num_heads))
+            self.att_channel = nn.Parameter(torch.empty(output_dim, self.num_heads))
             self.activatetion_att = ACTIVATION_DICT['elu']
+            # self.mlp_out = MLP([input_dim] + 1 * [input_dim] + [output_dim], bias=bias, activation='relu', norm=None)
         else:
             raise ValueError()
 
@@ -111,12 +116,14 @@ class HybridConv(MessagePassing):
 
     def reset_parameters(self):
         super().reset_parameters()
-        self.lin.reset_parameters()
         if self.combine_fn == 'cat':
             self.lin_combine.reset_parameters()
         elif self.combine_fn == 'att':
+            for idx in range(len(self.lin_att_list)):
+                self.lin_att_list[idx].reset_parameters()
             glorot(self.att_pre)
             glorot(self.att_channel)
+            # self.mlp_out.reset_parameters()
 
     def forward(self, x, edge_index) -> Tensor:
         edge_weight = None
@@ -130,7 +137,7 @@ class HybridConv(MessagePassing):
                 edge_index, edge_weight, x.size(self.node_dim), False,
                 self.add_self_loops, self.flow, dtype=x.dtype)
 
-        x = self.lin(x)
+        x_channel_list = [x]
 
         r = 0
         x_agg_dict = OrderedDict()
@@ -142,19 +149,20 @@ class HybridConv(MessagePassing):
                 x = self.propagate(edge_index, x=x, edge_weight=edge_weight, size=None)
             x_agg_dict[this_r] = x
 
-        x_channel_list = []
         for channel in self.channel_list:
             if len(channel) == 1:
-                x_channel_list.append(self.activation_channel(x_agg_dict[channel[0]]))
+                x_channel_list.append(x_agg_dict[channel[0]])
             else:
-                x_channel_list.append(self.activation_channel(x_agg_dict[channel[0]] - x_agg_dict[channel[1]]))
+                x_channel_list.append(x_agg_dict[channel[0]] - x_agg_dict[channel[1]])
 
         if self.combine_fn == 'cat':
+            if not self.residual:
+                x_channel_list = x_channel_list[1:]
             x = torch.cat(x_channel_list, dim=-1)
             x = self.lin_combine(x)
-            # x = self.activation(x)
+            x = self.activation_channel(x)
         elif self.combine_fn == 'att':
-            raise NotImplementedError()
+            x = self.channel_attention(x_channel_list)
         else:
             raise ValueError()
 
@@ -165,6 +173,23 @@ class HybridConv(MessagePassing):
 
     def message_and_aggregate(self, adj_t: SparseTensor, x: Tensor) -> Tensor:
         return spmm(adj_t, x, reduce=self.aggr)
+    
+    def channel_attention(self, x_channel_list: Tensor) -> Tensor:
+        for idx, h in enumerate(x_channel_list):
+            x_channel_list[idx] = self.activation_channel(self.lin_att_list[idx](h))
+        e_pre = torch.matmul(self.activation_channel(x_channel_list[0]), self.att_pre)
+        e_channel_list = [torch.matmul(x_channel, self.att_channel) for x_channel in x_channel_list[1:]]
+        e = torch.stack(e_channel_list, dim=0) + e_pre
+        channel_weights = torch.softmax(e, dim=0)
+
+        weighted_channels = torch.mul(channel_weights.unsqueeze(-2), torch.stack(x_channel_list[1:], dim=0).unsqueeze(-1))
+        x = weighted_channels.sum(dim=0).mean(dim=-1)
+
+        # x = self.mlp_out(x + x_channel_list[0])
+
+        # x = F.leaky_relu(x)
+
+        return x
 
     def __repr__(self) -> str:
         return (f'{self.__class__.__name__}({self.input_dim}, '
@@ -181,18 +206,12 @@ class HybridConvLayer(nn.Module):
                                 layer_config.dim_out,
                                 channel_list=cfg.gnn.hybrid.channel_list,
                                 combine_fn=cfg.gnn.hybrid.combine_fn,
+                                residual=cfg.gnn.hybrid.residual,
                                 activation_channel=cfg.gnn.hybrid.activation_channel,
+                                num_heads=cfg.gnn.hybrid.num_heads,
                                 add_self_loops=cfg.gnn.hybrid.add_self_loops,
                                 bias=layer_config.has_bias,
                                 **kwargs)
-
-
-
-
-        # activation: str = 'relu',
-        # num_heads: int = None,
-        # cached: bool = False,
-        add_self_loops: bool = True,
 
     def forward(self, batch):
         batch.x = self.model(batch.x, batch.edge_index)
