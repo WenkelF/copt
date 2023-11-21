@@ -10,7 +10,7 @@ from torch_geometric.graphgym import create_loader
 from torch_geometric.graphgym.checkpoint import get_ckpt_dir
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.imports import pl
-from torch_geometric.graphgym.logger import LoggerCallback
+from pytorch_lightning.callbacks import LearningRateMonitor
 from torch_geometric.graphgym.model_builder import GraphGymModule
 
 
@@ -39,6 +39,10 @@ def train(model: GraphGymModule, datamodule, logger: bool = True,
     if cfg.train.enable_ckpt:
         ckpt_cbk = pl.callbacks.ModelCheckpoint(dirpath=get_ckpt_dir())
         callbacks.append(ckpt_cbk)
+
+    # Monitor learning rate
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    callbacks.append(lr_monitor)
 
     trainer_config = trainer_config or {}
     trainer = pl.Trainer(
