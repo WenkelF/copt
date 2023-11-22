@@ -1,0 +1,40 @@
+command:
+  - python
+  - ${program}
+  - --cfg
+  - copt_graphgym/configs/maxcut_er.yaml
+  - ${args_no_hyphens}
+
+name: bayes_search
+method: bayes
+
+metric:
+  name: acc/valid
+  goal: maximize
+
+parameters:
+  gnn.layers_pre_mp:
+    distribution: int_uniform
+    max: 4
+    min: 1
+      
+  gnn.layers_post_mp:
+    distribution: int_uniform
+    max: 4
+    min: 1
+
+  gnn.layers_mp:
+    distribution: int_uniform
+    max: 32
+    min: 8
+
+  gnn.dim_inner:
+    value: 256
+
+  optim.base_lr:
+    value: 0.003
+
+  optim.max_epoch:
+    value: 100
+
+program: main_graphgym.py

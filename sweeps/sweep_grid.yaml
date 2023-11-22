@@ -1,0 +1,94 @@
+command:
+  - python
+  - ${program}
+  - --cfg
+  - copt_graphgym/configs/maxcut_bp.yaml
+  - ${args_no_hyphens}
+
+name: grid_search -- benchmarks
+method: grid
+
+metric:
+  name: acc/valid
+  goal: maximize
+
+parameters:
+  dataset.format:
+    values:
+      # - er
+      - er_50_02
+      - er_50_03
+      - er_50_04
+      # - bp
+      - bp_20_00
+      - bp_20_01
+      - bp_20_02
+      - bp_20_03
+
+  gnn.layer_type:
+    values:
+      # - hybridconv
+      - gcnconv
+      - ginconv
+      - gatconv
+      - gatv2conv
+
+  gnn.layers_pre_mp:
+    values:
+      - 4
+      
+  gnn.layers_post_mp:
+    values:
+      - 1
+
+  gnn.layers_mp:
+    values:
+      # - 1
+      # - 2
+      # - 4
+      # - 6
+      # - 8
+      # - 10
+      # - 12
+      - 16
+      - 32
+      # - 64
+
+  gnn.dim_inner:
+    values:
+      # - 32
+      # - 64
+      # - 128
+      - 256
+      # - 512
+
+  optim.base_lr:
+    value: 0.003
+
+  optim.max_epoch:
+    value: 100
+
+  seed:
+    values:
+      - 1
+      - 2
+      - 3
+
+  # gnn.hybrid.residual:
+  #   values:
+  #     - True
+  #     - False
+
+  # gnn.hybrid.combine_fn:
+  #   values:
+  #     # - cat
+  #     - att
+
+  # gnn.hybrid.num_heads:
+  #   values:
+  #     - 1
+  #     - 2
+  #     - 4
+  #     - 8
+
+program: main_graphgym.py
