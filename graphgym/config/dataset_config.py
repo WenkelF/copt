@@ -42,7 +42,7 @@ def er_test_cfg(cfg):
     """
     cfg.er_test = CN()
     # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
-    cfg.er_test.num_samples = 100
+    cfg.er_test.num_samples = 1000
     cfg.er_test.n_min = 8
     cfg.er_test.n_max = 15
     cfg.er_test.p = 0.4
@@ -114,6 +114,21 @@ def bp_cfg(cfg):
     cfg.bp.p_edge_bp = 0.4
     cfg.bp.p_edge_er = 0.1
     cfg.bp.supp_mtx = ["edge_index"]
+
+
+@register_config('bp_20_00_cfg')
+def bp_20_00_cfg(cfg):
+    """Configuration options for nx datasets.
+    """
+    cfg.bp_20_01 = CN()
+    # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
+    cfg.bp_20_01.num_samples = 10000
+    cfg.bp_20_01.mean = 20
+    cfg.bp_20_01.n_min = 10
+    cfg.bp_20_01.n_max = 30
+    cfg.bp_20_01.p_edge_bp = 0.3
+    cfg.bp_20_01.p_edge_er = 0.0
+    cfg.bp_20_01.supp_mtx = ["edge_index"]
 
 
 @register_config('bp_20_01_cfg')
