@@ -43,6 +43,7 @@ train:
   batch_size: 256
   eval_period: 1
   ckpt_period: 100
+  ckpt_best: true
 model:
   type: gnn
   loss_fun: maxcut_loss
