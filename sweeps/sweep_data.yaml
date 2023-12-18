@@ -2,7 +2,7 @@ command:
   - python
   - ${program}
   - --cfg
-  - copt_graphgym/configs/maxcut_bp.yaml
+  - copt_graphgym/configs/plantedclique.yaml
   - ${args_no_hyphens}
 
 name: grid_search -- data generation
@@ -17,13 +17,17 @@ parameters:
     values:
       # - er
       # - bp
+
       # - er_50_02
       # - er_50_03
       # - er_50_04
-      - bp_20_00
+
+      # - bp_20_00
       # - bp_20_01
       # - bp_20_02
       # - bp_20_03
+
+      - pc_500_20
 
   dataset.multiprocessing:
     value: True

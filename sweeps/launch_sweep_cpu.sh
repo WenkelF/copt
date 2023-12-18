@@ -31,4 +31,4 @@ source /home/mila/f/frederik.wenkel/.bashrc
 
 conda activate /home/mila/f/frederik.wenkel/miniconda3/envs/copt
 
-wandb agent --count 1 wenkelf/copt_graphgym/krvia38u
+wandb agent --count 1 wenkelf/copt_graphgym/v3dym4tr

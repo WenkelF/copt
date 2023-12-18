@@ -2,7 +2,7 @@ command:
   - python
   - ${program}
   - --cfg
-  - copt_graphgym/configs/maxcut_er.yaml
+  - copt_graphgym/configs/maxcut.yaml
   - ${args_no_hyphens}
 
 name: bayes_search

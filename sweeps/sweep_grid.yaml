@@ -2,28 +2,39 @@ command:
   - python
   - ${program}
   - --cfg
-  - copt_graphgym/configs/maxcut_bp.yaml
+  - copt_graphgym/configs/maxcut.yaml
   - ${args_no_hyphens}
 
-name: grid_search -- benchmarks
+name: grid_search -- ba graphs
 method: grid
 
 metric:
-  name: acc/valid
+  name: size/valid
   goal: maximize
 
 parameters:
   dataset.format:
     values:
       # - er
-      - er_50_02
-      - er_50_03
-      - er_50_04
       # - bp
-      - bp_20_00
-      - bp_20_01
-      - bp_20_02
-      - bp_20_03
+
+      # - er_50_02
+      # - er_50_03
+      # - er_50_04
+
+      # - bp_20_00
+      # - bp_20_01
+      # - bp_20_02
+      # - bp_20_03
+
+      # - pc_test
+      # - pc_100_40
+
+      - ba_small
+      - ba_large
+
+  dataset.label:
+    value: False
 
   gnn.layer_type:
     values:
@@ -47,10 +58,12 @@ parameters:
       # - 2
       # - 4
       # - 6
-      # - 8
+      - 8
       # - 10
       # - 12
+      # - 14
       - 16
+      - 24
       - 32
       # - 64
 
@@ -66,7 +79,7 @@ parameters:
     value: 0.003
 
   optim.max_epoch:
-    value: 100
+    value: 50
 
   seed:
     values:
@@ -81,7 +94,7 @@ parameters:
 
   # gnn.hybrid.combine_fn:
   #   values:
-  #     # - cat
+  #     - cat
   #     - att
 
   # gnn.hybrid.num_heads:
@@ -90,5 +103,8 @@ parameters:
   #     - 2
   #     - 4
   #     - 8
+
+  train.batch_size:
+    value: 64
 
 program: main_graphgym.py
