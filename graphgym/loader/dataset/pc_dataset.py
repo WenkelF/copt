@@ -5,19 +5,24 @@ from loguru import logger
 
 import numpy as np
 import networkx as nx
+import random
 import torch
 from torch_geometric.data import InMemoryDataset
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.utils.convert import from_networkx
-from networkx.algorithms import bipartite
 
 from graphgym.utils import parallelize_fn
 
 
-class BPDataset(InMemoryDataset):
+class PCDataset(InMemoryDataset):
     def __init__(self, format, root, transform=None, pre_transform=None, multiprocessing=False):
         self.format = format
         self.multiprocessing = multiprocessing
+
+        lb = 2 * np.log2(cfg[self.format].graph_size)
+        ub = np.sqrt(cfg[self.format].graph_size)
+        self.clique_size = int((lb + ub) / 2) if cfg[self.format].clique_size is None else cfg[self.format].clique_size
+
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0])
         self.name = ''
@@ -31,32 +36,41 @@ class BPDataset(InMemoryDataset):
         return ['data.pt']
 
     def create_graph(self, idx):
-        part_sizes = np.random.poisson(cfg[self.format].mean, 2)
-        part_sizes = np.maximum(np.minimum(part_sizes, cfg[self.format].n_max), cfg[self.format].n_min)
-        g = bipartite.random_graph(*part_sizes, cfg[self.format].p_edge_bp)
+
+        g = nx.fast_gnp_random_graph(cfg[self.format].graph_size, p=0.5)
         while not nx.is_connected(g):
-            g = bipartite.random_graph(*np.random.poisson(cfg[self.format].mean, 2), cfg[self.format].p_edge_bp)
-        
-        num_nodes = len(g.nodes)
-        if cfg[self.format].p_edge_er > 0:
-            g_er = nx.erdos_renyi_graph(num_nodes, cfg[self.format].p_edge_er)
-            g = nx.compose(g, g_er)
+            g = nx.fast_gnp_random_graph(cfg[self.format].graph_size, p=0.5)
+
+        if random.uniform(0.0, 1.0) < 0.5:
+            c = nx.complete_graph(self.clique_size)
+            g = nx.compose(g, c)
+            label = 1.0
+        else:
+            label = 0.0
 
         if isinstance(g, nx.DiGraph):
             g = g.to_undirected()
 
         g_pyg = from_networkx(g)
-        return g_pyg
+        return g_pyg, label
 
     def process(self):
         # Read data into huge `Data` list.
         
         logger.info("Generating graphs...")
         if self.multiprocessing:
-            logger.info(f" num_processes={cfg.dataset.num_workers}")
+            logger.info(f"   num_processes={cfg.dataset.num_workers}")
             data_list = parallelize_fn(range(cfg[self.format].num_samples), self.create_graph, num_processes=cfg.dataset.num_workers)
         else:
             data_list = [self.create_graph(idx) for idx in range(cfg[self.format].num_samples)]
+
+        old_data_list = data_list.copy()
+        data_list = []
+        for data in old_data_list:
+            y = data[1]
+            data = data[0]
+            data.y = y
+            data_list.append(data)
 
         logger.info("Filtering data...")
         if self.pre_filter is not None:
@@ -65,7 +79,7 @@ class BPDataset(InMemoryDataset):
         logger.info("pre transform data...")
         if self.pre_transform is not None:
             if self.multiprocessing:
-                logger.info(f" num_processes={cfg.dataset.num_workers}")
+                logger.info(f"   num_processes={cfg.dataset.num_workers}")
                 data_list = parallelize_fn(data_list, self.pre_transform, num_processes=cfg.dataset.num_workers)
             else:
                 data_list = [self.pre_transform(data) for data in data_list]

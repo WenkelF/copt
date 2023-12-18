@@ -15,10 +15,12 @@ from utils.metrics import (
     maxcut_loss_pyg,
     maxcut_mae_pyg,
     maxcut_acc_pyg,
+    maxcut_size_pyg,
     maxclique_loss,
     maxclique_ratio,
     maxclique_loss_pyg,
     maxclique_ratio_pyg,
+    plantedclique_acc_pyg,
 )
 
 OPTIMIZER_DICT = {
@@ -51,6 +53,11 @@ LOSS_FUNCTION_DICT = {
 }
     
 EVAL_FUNCTION_DICT = {
-    "maxcut": {"mae": maxcut_mae_pyg, "acc": maxcut_acc_pyg},
+    "maxcut": {"mae": maxcut_mae_pyg, "acc": maxcut_acc_pyg, "size": maxcut_size_pyg},
     "maxclique": {"approx_ratio": maxclique_ratio_pyg},
+    "plantedclique": {"acc": plantedclique_acc_pyg},
+}
+    
+EVAL_FUNCTION_DICT_NOLABEL = {
+    "maxcut": {"size": maxcut_size_pyg},
 }

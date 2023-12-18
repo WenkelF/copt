@@ -9,11 +9,10 @@ from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.imports import LightningModule
 from torch_geometric.graphgym.loss import compute_loss
 from torch_geometric.graphgym.model_builder import GraphGymModule
-from torch_geometric.graphgym.models.gnn import GNN
 from torch_geometric.graphgym.optim import create_optimizer, create_scheduler
 from torch_geometric.graphgym.register import network_dict
 
-from modules.utils.spaces import OPTIMIZER_DICT, LOSS_FUNCTION_DICT, EVAL_FUNCTION_DICT
+from modules.utils.spaces import OPTIMIZER_DICT, LOSS_FUNCTION_DICT, EVAL_FUNCTION_DICT, EVAL_FUNCTION_DICT_NOLABEL
 
 
 class COPTModule(GraphGymModule):
@@ -24,7 +23,10 @@ class COPTModule(GraphGymModule):
         self.loss_func = register.loss_dict[cfg.model.loss_fun]
 
         # Eval function
-        self.eval_func_dict = EVAL_FUNCTION_DICT[cfg.train.task]
+        if not cfg.dataset.label:
+            self.eval_func_dict = EVAL_FUNCTION_DICT_NOLABEL[cfg.train.task]
+        else:
+            self.eval_func_dict = EVAL_FUNCTION_DICT[cfg.train.task]
         for key, eval_func in self.eval_func_dict.items():
             self.eval_func_dict[key] = eval_func
 
@@ -38,7 +40,7 @@ class COPTModule(GraphGymModule):
 
     def training_step(self, batch, *args, **kwargs):
         batch.split = "train"
-        batch = self.forward(batch)
+        out = self.forward(batch)
         loss = self.loss_func(batch)
         step_end_time = time.time()
         self.log("loss/train", loss, batch_size=batch.batch_size, on_step=True, prog_bar=True, logger=True)

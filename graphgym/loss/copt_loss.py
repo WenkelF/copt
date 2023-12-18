@@ -173,3 +173,13 @@ def color_acc(output, adj, deg_vect):
     bin_enc = (one_hot.float() - 0.5) * 2
 
     return (torch.matmul(bin_enc.transpose(-1, -2), torch.matmul(adj, bin_enc)).diagonal(dim1=-1, dim2=-2).sum(-1) / deg_vect).mean()
+
+
+from torch.nn import BCEWithLogitsLoss
+ce_loss = BCEWithLogitsLoss()
+
+@register_loss("plantedclique_loss")
+def plantedclique_loss_pyg(data):
+
+    return ce_loss(data.x, data.y.unsqueeze(-1))
+

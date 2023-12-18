@@ -156,6 +156,21 @@ def maxcut_acc_pyg(data):
     return torch.Tensor(comparison_list).mean()
 
 
+def maxcut_size_pyg(data):
+
+    x = (data.x > 0.5).float()
+    x = (x - 0.5) * 2
+
+    x_list = unbatch(x, data.batch)
+    edge_index_list = unbatch_edge_index(data.edge_index, data.batch)
+
+    cut_list = []
+    for x, edge_index in zip(x_list, edge_index_list):
+        cut_list.append(torch.sum(x[edge_index[0]] * x[edge_index[1]] == -1.0) / 2)
+
+    return torch.Tensor(cut_list).mean()
+
+
 def maxcut_loss(data):
     x = (data['x'] - 0.5) * 2
     adj = data['adj_mat']
@@ -223,3 +238,9 @@ def color_acc(output, adj, deg_vect):
     bin_enc = (one_hot.float() - 0.5) * 2
 
     return (torch.matmul(bin_enc.transpose(-1, -2), torch.matmul(adj, bin_enc)).diagonal(dim1=-1, dim2=-2).sum(-1) / deg_vect).mean()
+
+
+def plantedclique_acc_pyg(data):
+    pred = torch.sigmoid(data.x) >= 0.5
+
+    return torch.mean((pred.float() == data.y).float())

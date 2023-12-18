@@ -169,12 +169,3 @@ if __name__ == '__main__':
             train(model, datamodule, logger=True)
         else:
             train_dict[cfg.train.mode](cfg, loaders, model)
-    # Aggregate results from different seeds
-    try:
-        agg_runs(cfg.out_dir, cfg.metric_best)
-    except Exception as e:
-        logging.info(f"Failed when trying to aggregate multiple runs: {e}")
-    # When being launched in batch mode, mark a yaml as done
-    if args.mark_done:
-        os.rename(args.cfg_file, f'{args.cfg_file}_done')
-    logging.info(f"[*] All done: {datetime.datetime.now()}")

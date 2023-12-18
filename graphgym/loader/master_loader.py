@@ -33,6 +33,8 @@ from graphgym.encoder.gnn_encoder import gpse_process_batch
 from graphgym.head.identity import IdentityHead
 from graphgym.loader.dataset.er_dataset import ERDataset
 from graphgym.loader.dataset.bp_dataset import BPDataset
+from graphgym.loader.dataset.pc_dataset import PCDataset
+from graphgym.loader.dataset.ba_dataset import BADataset
 from graphgym.loader.dataset.synthetic_wl import SyntheticWL
 from graphgym.loader.split_generator import prepare_splits, set_dataset_splits
 from graphgym.transform.gnn_hash import GraphNormalizer, RandomGNNHash
@@ -248,17 +250,25 @@ def load_dataset_master(format, name, dataset_dir):
 
         pre_transform_in_memory(dataset, T.Compose(tf_list), show_progress=True)
 
-    elif format.startswith('er') or format.startswith('bp'):
+    elif format.startswith('er') or format.startswith('bp') or format.startswith('pc') or format.startswith('ba'):
         tf_list = [set_graph_stats]
-        if cfg.train.task == 'maxcut':
+        if not cfg.dataset.label:
+            pass
+        elif cfg.train.task == 'maxcut':
             tf_list.append(set_maxcut)
         elif cfg.train.task == 'maxclique':
             tf_list.append(set_maxclique)
+        elif cfg.train.task == 'plantedclique':
+            pass
         
         if format.startswith('er'):
             dataset = ERDataset(format, osp.join(dataset_dir, format), pre_transform=T.Compose(tf_list), multiprocessing=cfg.dataset.multiprocessing)
         elif format.startswith('bp'):
-            dataset = BPDataset(format, osp.join(dataset_dir, format), pre_transform=T.Compose(tf_list))
+            dataset = BPDataset(format, osp.join(dataset_dir, format), pre_transform=T.Compose(tf_list), multiprocessing=cfg.dataset.multiprocessing)
+        elif format.startswith('pc'):
+            dataset = PCDataset(format, osp.join(dataset_dir, format), pre_transform=T.Compose(tf_list), multiprocessing=cfg.dataset.multiprocessing)
+        elif format.startswith('ba'):
+            dataset = BADataset(format, osp.join(dataset_dir, format), pre_transform=T.Compose(tf_list), multiprocessing=cfg.dataset.multiprocessing)
         pre_transform_in_memory(dataset, set_y, show_progress=True)
 
     # GraphGym default loader for Pytorch Geometric datasets
@@ -834,6 +844,26 @@ def set_graph_stats(data):
     # Derive adjacency matrix
     adj = torch.from_numpy(nx.to_numpy_array(g))
 
+    # print("Computing degrees...")
+    # t0 = time.time()
+    # deg, _ = compute_degrees(adj, log_transform=True)
+    # print("Finished, took: {:.2f}s".format(time.time() - t0))
+
+    # print("Computing eccentricity...")
+    # t0 = time.time()
+    # ecc, _ = compute_eccentricity(g)
+    # print("Finished, took: {:.2f}s".format(time.time() - t0))
+
+    # print("Computing clustering coefficient...")
+    # t0 = time.time()
+    # clu, _ = compute_cluster_coefficient(g)
+    # print("Finished, took: {:.2f}s".format(time.time() - t0))
+    
+    # print("Computing triangle count...")
+    # t0 = time.time()
+    # tri, _ = compute_triangle_count(g)
+    # print("Finished, took: {:.2f}s".format(time.time() - t0))
+
     deg, _ = compute_degrees(adj, log_transform=True)
     ecc, _ = compute_eccentricity(g)
     clu, _ = compute_cluster_coefficient(g)
@@ -843,6 +873,9 @@ def set_graph_stats(data):
     return data
 
 def compute_maxcut(g):
+    # print("Computing maxcut...")
+    # t0 = time.time()
+
     adj = torch.from_numpy(nx.to_numpy_array(g))
     num_nodes = adj.size(0)
 
@@ -850,6 +883,8 @@ def compute_maxcut(g):
     cut_size = max(len(cut), g.number_of_nodes() - len(cut))
     cut_binary = torch.zeros((num_nodes, 1), dtype=torch.int)
     cut_binary[torch.tensor(list(cut))] = 1
+
+    # print("Finished, took: {:.2f}s".format(time.time() - t0))
 
     return cut_size, cut_binary
 
@@ -872,9 +907,19 @@ def set_maxclique(data):
     data.mc_size = max(len(clique) for clique in nx.find_cliques(g))
     return data
 
+def set_plantedclique(data):
+    g = to_networkx(data)
+    if isinstance(g, nx.DiGraph):
+        g = g.to_undirected()
+    # target = {"mc_size": max(len(clique) for clique in nx.find_cliques(g))}
+    data.mc_size = max(len(clique) for clique in nx.find_cliques(g))
+    return data
+
 
 def set_y(data):
-    if cfg.train.task == 'maxcut':
+    if not cfg.dataset.label:
+        data.y = None
+    elif cfg.train.task == 'maxcut':
         data.y = data.cut_binary
     elif cfg.train.task == 'maxclique':
         data.y = data.mc_size,

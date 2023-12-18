@@ -35,6 +35,8 @@ def dataset_cfg(cfg):
     cfg.dataset.multiprocessing = False
     cfg.dataset.num_workers = 4
 
+    cfg.dataset.label = True
+
 
 @register_config('er_test_cfg')
 def er_test_cfg(cfg):
@@ -42,7 +44,7 @@ def er_test_cfg(cfg):
     """
     cfg.er_test = CN()
     # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
-    cfg.er_test.num_samples = 1000
+    cfg.er_test.num_samples = 100
     cfg.er_test.n_min = 8
     cfg.er_test.n_max = 15
     cfg.er_test.p = 0.4
@@ -54,7 +56,6 @@ def er_cfg(cfg):
     """Configuration options for nx datasets.
     """
     cfg.er = CN()
-    # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
     cfg.er.num_samples = 10000
     cfg.er.n_min = 8
     cfg.er.n_max = 15
@@ -67,7 +68,6 @@ def er_50_02_cfg(cfg):
     """Configuration options for nx datasets.
     """
     cfg.er_50_02 = CN()
-    # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
     cfg.er_50_02.num_samples = 10000
     cfg.er_50_02.n_min = 30
     cfg.er_50_02.n_max = 50
@@ -80,7 +80,6 @@ def er_50_03_cfg(cfg):
     """Configuration options for nx datasets.
     """
     cfg.er_50_03 = CN()
-    # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
     cfg.er_50_03.num_samples = 10000
     cfg.er_50_03.n_min = 30
     cfg.er_50_03.n_max = 50
@@ -93,7 +92,6 @@ def er_50_04_cfg(cfg):
     """Configuration options for nx datasets.
     """
     cfg.er_50_04 = CN()
-    # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
     cfg.er_50_04.num_samples = 10000
     cfg.er_50_04.n_min = 30
     cfg.er_50_04.n_max = 50
@@ -106,7 +104,6 @@ def bp_cfg(cfg):
     """Configuration options for nx datasets.
     """
     cfg.bp = CN()
-    # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
     cfg.bp.num_samples = 10000
     cfg.bp.mean = 10
     cfg.bp.n_min = 4
@@ -120,15 +117,14 @@ def bp_cfg(cfg):
 def bp_20_00_cfg(cfg):
     """Configuration options for nx datasets.
     """
-    cfg.bp_20_01 = CN()
-    # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
-    cfg.bp_20_01.num_samples = 10000
-    cfg.bp_20_01.mean = 20
-    cfg.bp_20_01.n_min = 10
-    cfg.bp_20_01.n_max = 30
-    cfg.bp_20_01.p_edge_bp = 0.3
-    cfg.bp_20_01.p_edge_er = 0.0
-    cfg.bp_20_01.supp_mtx = ["edge_index"]
+    cfg.bp_20_00 = CN()
+    cfg.bp_20_00.num_samples = 10000
+    cfg.bp_20_00.mean = 20
+    cfg.bp_20_00.n_min = 10
+    cfg.bp_20_00.n_max = 30
+    cfg.bp_20_00.p_edge_bp = 0.3
+    cfg.bp_20_00.p_edge_er = 0.0
+    cfg.bp_20_00.supp_mtx = ["edge_index"]
 
 
 @register_config('bp_20_01_cfg')
@@ -136,7 +132,6 @@ def bp_20_01_cfg(cfg):
     """Configuration options for nx datasets.
     """
     cfg.bp_20_01 = CN()
-    # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
     cfg.bp_20_01.num_samples = 10000
     cfg.bp_20_01.mean = 20
     cfg.bp_20_01.n_min = 10
@@ -151,7 +146,6 @@ def bp_20_02_cfg(cfg):
     """Configuration options for nx datasets.
     """
     cfg.bp_20_02 = CN()
-    # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
     cfg.bp_20_02.num_samples = 10000
     cfg.bp_20_02.mean = 20
     cfg.bp_20_02.n_min = 10
@@ -166,7 +160,6 @@ def bp_20_03_cfg(cfg):
     """Configuration options for nx datasets.
     """
     cfg.bp_20_03 = CN()
-    # features can be one of ['node_const', 'node_onehot', 'node_clustering_coefficient', 'node_pagerank']
     cfg.bp_20_03.num_samples = 10000
     cfg.bp_20_03.mean = 20
     cfg.bp_20_03.n_min = 10
@@ -174,3 +167,60 @@ def bp_20_03_cfg(cfg):
     cfg.bp_20_03.p_edge_bp = 0.3
     cfg.bp_20_03.p_edge_er = 0.3
     cfg.bp_20_03.supp_mtx = ["edge_index"]
+
+
+@register_config('pc_test_cfg')
+def pc_test_cfg(cfg):
+    """Configuration options for nx datasets.
+    """
+    cfg.pc_test = CN()
+    cfg.pc_test.num_samples = 1000
+    cfg.pc_test.graph_size = 500
+    cfg.pc_test.clique_size = None
+    cfg.pc_test.supp_mtx = ["edge_index"]
+
+
+@register_config('pc_500_20_cfg')
+def pc_500_20_cfg(cfg):
+    """Configuration options for nx datasets.
+    """
+    cfg.pc_500_20 = CN()
+    cfg.pc_500_20.num_samples = 10000
+    cfg.pc_500_20.graph_size = 500
+    cfg.pc_500_20.clique_size = None
+    cfg.pc_500_20.supp_mtx = ["edge_index"]
+
+
+@register_config('pc_100_40_cfg')
+def pc_100_40_cfg(cfg):
+    """Configuration options for nx datasets.
+    """
+    cfg.pc_100_40 = CN()
+    cfg.pc_100_40.num_samples = 10000
+    cfg.pc_100_40.graph_size = 100
+    cfg.pc_100_40.clique_size = 40
+    cfg.pc_100_40.supp_mtx = ["edge_index"]
+
+
+@register_config('ba_small_cfg')
+def ba_small_cfg(cfg):
+    """Configuration options for nx datasets.
+    """
+    cfg.ba_small = CN()
+    cfg.ba_small.num_samples = 5000
+    cfg.ba_small.n_min = 200
+    cfg.ba_small.n_max = 300
+    cfg.ba_small.num_edges = 4
+    cfg.ba_small.supp_mtx = ["edge_index"]
+
+
+@register_config('ba_large_cfg')
+def ba_large_cfg(cfg):
+    """Configuration options for nx datasets.
+    """
+    cfg.ba_large = CN()
+    cfg.ba_large.num_samples = 5000
+    cfg.ba_large.n_min = 800
+    cfg.ba_large.n_max = 1200
+    cfg.ba_large.num_edges = 4
+    cfg.ba_large.supp_mtx = ["edge_index"]
