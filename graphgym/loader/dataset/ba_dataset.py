@@ -1,3 +1,4 @@
+from multiprocessing import cpu_count
 from typing import Optional, Callable, List
 
 import os.path as osp
@@ -14,13 +15,14 @@ from graphgym.utils import parallelize_fn
 
 
 class BADataset(InMemoryDataset):
-    def __init__(self, name, root, transform=None, pre_transform=None, multiprocessing=False):
+    def __init__(self, name, root, transform=None, pre_transform=None):
         self.name = name
         self.params = getattr(cfg.ba, self.name)
-        self.multiprocessing = multiprocessing
+        self.multiprocessing = cfg.dataset.multiprocessing
+        if self.multiprocessing:
+            self.num_workers = cfg.num_workers if cfg.num_workers > 0 else cpu_count()
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0])
-        self.name = ''
 
     @property
     def processed_dir(self) -> str:
@@ -45,8 +47,8 @@ class BADataset(InMemoryDataset):
         
         logger.info("Generating graphs...")
         if self.multiprocessing:
-            logger.info(f"   num_processes={cfg.dataset.num_workers}")
-            data_list = parallelize_fn(range(cfg.ba.num_samples), self.create_graph, num_processes=cfg.dataset.num_workers)
+            logger.info(f"   num_processes={self.num_workers}")
+            data_list = parallelize_fn(range(cfg.ba.num_samples), self.create_graph, num_processes=self.num_workers)
         else:
             data_list = [self.create_graph(idx) for idx in range(cfg.ba.num_samples)]
 
@@ -57,8 +59,8 @@ class BADataset(InMemoryDataset):
         logger.info("pre transform data...")
         if self.pre_transform is not None:
             if self.multiprocessing:
-                logger.info(f"   num_processes={cfg.dataset.num_workers}")
-                data_list = parallelize_fn(data_list, self.pre_transform, num_processes=cfg.dataset.num_workers)
+                logger.info(f"   num_processes={self.num_workers}")
+                data_list = parallelize_fn(data_list, self.pre_transform, num_processes=self.num_workers)
             else:
                 data_list = [self.pre_transform(data) for data in data_list]
 

@@ -19,7 +19,6 @@ dataset:
   node_encoder_name: RWSE
   set_graph_stats: true
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
-  num_workers: 4
 posenc_LapPE:
   enable: false
   eigen:

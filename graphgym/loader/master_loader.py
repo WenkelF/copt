@@ -260,17 +260,15 @@ def load_dataset_master(format, name, dataset_dir):
         tf_list = [set_y]
         
         if format.startswith('er'):
-            dataset = ERDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list), multiprocessing=cfg.dataset.multiprocessing)
+            dataset = ERDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list))
         elif format.startswith('bp'):
-            dataset = BPDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list), multiprocessing=cfg.dataset.multiprocessing)
+            dataset = BPDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list))
         elif format.startswith('rb'):
-            dataset = RBDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list), multiprocessing=cfg.dataset.multiprocessing)
+            dataset = RBDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list))
         elif format.startswith('pc'):
-            dataset = PCDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list),
-                                multiprocessing=cfg.dataset.multiprocessing)
+            dataset = PCDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list))
         elif format.startswith('ba'):
-            dataset = BADataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list),
-                                multiprocessing=cfg.dataset.multiprocessing)
+            dataset = BADataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list))
 
         if cfg.dataset.set_graph_stats:
             tf_list.append(set_graph_stats)
