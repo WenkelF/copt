@@ -15,31 +15,31 @@ from graphgym.utils import parallelize_fn
 
 
 class BPDataset(InMemoryDataset):
-    def __init__(self, format, root, transform=None, pre_transform=None, multiprocessing=False):
-        self.format = format
+    def __init__(self, name, root, transform=None, pre_transform=None, multiprocessing=False):
+        self.name = name
+        self.params = getattr(cfg.bp, f'v{name}')
         self.multiprocessing = multiprocessing
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0])
-        self.name = ''
 
     @property
     def processed_dir(self) -> str:
-        return osp.join(self.root, 'processed')
+        return osp.join(self.root, self.name, 'processed')
 
     @property
     def processed_file_names(self):
         return ['data.pt']
 
     def create_graph(self, idx):
-        part_sizes = np.random.poisson(cfg[self.format].mean, 2)
-        part_sizes = np.maximum(np.minimum(part_sizes, cfg[self.format].n_max), cfg[self.format].n_min)
-        g = bipartite.random_graph(*part_sizes, cfg[self.format].p_edge_bp)
+        part_sizes = np.random.poisson(self.params.mean, 2)
+        part_sizes = np.maximum(np.minimum(part_sizes, cfg.bp.n_max), cfg.bp.n_min)
+        g = bipartite.random_graph(*part_sizes, cfg.bp.p_edge_bp)
         while not nx.is_connected(g):
-            g = bipartite.random_graph(*np.random.poisson(cfg[self.format].mean, 2), cfg[self.format].p_edge_bp)
+            g = bipartite.random_graph(*np.random.poisson(self.params.mean, 2), cfg.bp.p_edge_bp)
         
         num_nodes = len(g.nodes)
         if cfg[self.format].p_edge_er > 0:
-            g_er = nx.erdos_renyi_graph(num_nodes, cfg[self.format].p_edge_er)
+            g_er = nx.erdos_renyi_graph(num_nodes, self.params.p_edge_er)
             g = nx.compose(g, g_er)
 
         if isinstance(g, nx.DiGraph):
@@ -54,9 +54,9 @@ class BPDataset(InMemoryDataset):
         logger.info("Generating graphs...")
         if self.multiprocessing:
             logger.info(f" num_processes={cfg.dataset.num_workers}")
-            data_list = parallelize_fn(range(cfg[self.format].num_samples), self.create_graph, num_processes=cfg.dataset.num_workers)
+            data_list = parallelize_fn(range(cfg.bp.num_samples), self.create_graph, num_processes=cfg.dataset.num_workers)
         else:
-            data_list = [self.create_graph(idx) for idx in range(cfg[self.format].num_samples)]
+            data_list = [self.create_graph(idx) for idx in range(cfg.bp.num_samples)]
 
         logger.info("Filtering data...")
         if self.pre_filter is not None:

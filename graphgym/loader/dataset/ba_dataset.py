@@ -14,8 +14,9 @@ from graphgym.utils import parallelize_fn
 
 
 class BADataset(InMemoryDataset):
-    def __init__(self, format, root, transform=None, pre_transform=None, multiprocessing=False):
-        self.format = format
+    def __init__(self, name, root, transform=None, pre_transform=None, multiprocessing=False):
+        self.name = name
+        self.params = getattr(cfg.ba, self.name)
         self.multiprocessing = multiprocessing
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0])
@@ -30,8 +31,8 @@ class BADataset(InMemoryDataset):
         return ['data.pt']
 
     def create_graph(self, idx):
-        n = np.random.randint(cfg[self.format].n_min, cfg[self.format].n_max + 1)
-        g = nx.barabasi_albert_graph(n, cfg[self.format].num_edges)
+        n = np.random.randint(self.params.n_min, self.params.n_max + 1)
+        g = nx.barabasi_albert_graph(n, cfg.ba.num_edges)
 
         if isinstance(g, nx.DiGraph):
             g = g.to_undirected()
@@ -45,9 +46,9 @@ class BADataset(InMemoryDataset):
         logger.info("Generating graphs...")
         if self.multiprocessing:
             logger.info(f"   num_processes={cfg.dataset.num_workers}")
-            data_list = parallelize_fn(range(cfg[self.format].num_samples), self.create_graph, num_processes=cfg.dataset.num_workers)
+            data_list = parallelize_fn(range(cfg.ba.num_samples), self.create_graph, num_processes=cfg.dataset.num_workers)
         else:
-            data_list = [self.create_graph(idx) for idx in range(cfg[self.format].num_samples)]
+            data_list = [self.create_graph(idx) for idx in range(cfg.ba.num_samples)]
 
         logger.info("Filtering data...")
         if self.pre_filter is not None:
