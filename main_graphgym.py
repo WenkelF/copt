@@ -1,6 +1,7 @@
 import datetime
 import os
 import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
 import logging
 import argparse
 
