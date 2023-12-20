@@ -37,6 +37,13 @@ def dataset_cfg(cfg):
     cfg.dataset.label = True
 
 
+@register_config('satlib_cfg')
+def er_test_cfg(cfg):
+    cfg.satlib = CN()
+    cfg.satlib.gen_labels = False
+    cfg.satlib.weighted = False
+
+
 @register_config('er_test_cfg')
 def er_test_cfg(cfg):
     """Configuration options for nx datasets.

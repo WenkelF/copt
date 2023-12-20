@@ -37,6 +37,7 @@ from graphgym.loader.dataset.rb_dataset import RBDataset
 from graphgym.loader.dataset.pc_dataset import PCDataset
 from graphgym.loader.dataset.ba_dataset import BADataset
 from graphgym.loader.dataset.synthetic_wl import SyntheticWL
+from graphgym.loader.dataset.satlib import SATLIB
 from graphgym.loader.split_generator import prepare_splits, set_dataset_splits
 from graphgym.transform.gnn_hash import GraphNormalizer, RandomGNNHash
 from graphgym.transform.posenc_stats import compute_posenc_stats
@@ -272,6 +273,16 @@ def load_dataset_master(format, name, dataset_dir):
 
         if cfg.dataset.set_graph_stats:
             tf_list.append(set_graph_stats)
+        pre_transform_in_memory(dataset, T.Compose(tf_list), show_progress=True)
+
+    elif format == 'SATLIB':
+        if not cfg.dataset.label or cfg.train.task == 'plantedclique':
+            pre_tf_list = []
+        else:
+            pre_tf_list = [set_maxcut, set_maxclique]
+        tf_list = [set_y]
+
+        dataset = SATLIB(dataset_dir, pre_transform=T.Compose(pre_tf_list))
         pre_transform_in_memory(dataset, T.Compose(tf_list), show_progress=True)
 
     # GraphGym default loader for Pytorch Geometric datasets

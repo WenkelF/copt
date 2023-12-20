@@ -9,6 +9,7 @@ from torch_geometric.utils import degree
 from torch_geometric.utils import remove_self_loops
 from torch_scatter import scatter
 from yacs.config import CfgNode
+from tqdm import tqdm
 
 
 def get_device(device: str, default_device: str) -> str:
@@ -209,4 +210,14 @@ def grouper(iterable, n: int, *, fillvalue: Optional[Any] = None):
 def parallelize_fn(instances, fn, num_processes):
     with multiprocessing.Pool(processes=num_processes) as pool:
         results = pool.map(fn, instances)
+    return results
+
+
+def parallelize_fn_tqdm(instances, fn, num_processes):
+    results = []
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        with tqdm(total=len(instances)) as pbar:
+            for result in pool.imap_unordered(fn, instances):
+                results.append(result)
+                pbar.update()
     return results
