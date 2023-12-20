@@ -2,24 +2,24 @@
 out_dir: results
 metric_best: mae
 num_workers: 4
-dim_in: 3
+dim_in: 4
 wandb:
   use: True
   name: test
   project: copt-pyg
   entity: semo
 dataset:
-  format: rb
-  name: small
+  format: er
+  name: v50_02
   task: graph
   # task_type: classification
   split_mode: cv-kfold-5
   split_dir: splits
   node_encoder: False
   node_encoder_name: RWSE
-  set_graph_stats: true
-  graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
   num_workers: 4
+  set_graph_stats: true
+  graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
 posenc_LapPE:
   enable: false
   eigen:
@@ -43,7 +43,7 @@ posenc_RWSE:
 train:
   mode: copt
   # compile: True
-  task: maxclique
+  task: maxcut
   batch_size: 256
   eval_period: 1
   ckpt_period: 100
