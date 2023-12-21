@@ -58,3 +58,6 @@ def extended_cfg(cfg):
     # Used by hybrid prediction head to set the number of node and graph heads.
     cfg.share.num_node_targets = -1
     cfg.share.num_graph_targets = -1
+
+
+    cfg.model.loss_beta = None

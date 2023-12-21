@@ -2,8 +2,13 @@ from typing import Union, Tuple, List, Dict, Any
 
 import torch
 
+import time
+
 from torch_geometric.data import Batch
-from torch_geometric.utils import to_dense_adj, unbatch, unbatch_edge_index #, to_torch_sparse_tensor
+from torch_geometric.utils import unbatch, unbatch_edge_index,  add_self_loops, remove_self_loops
+from torch_scatter import scatter
+
+from copy import deepcopy
 
 
 def accuracy(output, target):
@@ -244,3 +249,113 @@ def plantedclique_acc_pyg(data):
     pred = torch.sigmoid(data.x) >= 0.5
 
     return torch.mean((pred.float() == data.y).float())
+
+
+def ds_size_pyg(data):
+    data_list = data.to_data_list()
+
+    ds_list = []
+    for data in data_list:
+        p = deepcopy(data.x).squeeze()
+        edge_index = add_self_loops(data.edge_index)[0]
+        row, col = edge_index[0], edge_index[1]
+
+        ds = (data.x >= 0.5).squeeze()
+        p[ds] = - torch.inf
+       
+        t0 = time.time()
+        while not is_ds(ds, row, col):
+            idx = torch.argmax(p)
+            ds[idx] = True
+            p[idx] = - torch.inf
+            if time.time() - t0 > 30:
+                break
+
+        if is_ds(ds, row, col):
+            ds_list.append(ds.sum())
+        else:
+            ds_list.append(torch.nan)
+
+    return torch.Tensor(ds_list).mean()
+
+
+def ds_acc_pyg(data):
+    data_list = data.to_data_list()
+
+    ds_list = []
+    for data in data_list:
+        p = deepcopy(data.x).squeeze()
+        edge_index = add_self_loops(data.edge_index)[0]
+        row, col = edge_index[0], edge_index[1]
+
+        ds = (data.x >= 0.5).squeeze()
+
+        p[ds] = - torch.inf
+        
+        while not is_ds(ds, row, col):
+            idx = torch.argmax(p)
+            ds[idx] = True
+            p[idx] = - torch.inf
+
+        if is_ds(ds, row, col):
+            ds_list.append(True)
+        else:
+            ds_list.append(False)
+
+    return torch.Tensor(ds_list).mean()
+
+
+def is_ds(ds, row, col):
+    agg = scatter(ds.float()[row], index=col, reduce='sum')
+    visited = agg >= 1.0
+
+    return all(visited)
+
+
+def mis_size_pyg(data):
+    data_list = data.to_data_list()
+
+    iset_list = []
+    for data in data_list:
+        p = deepcopy(data.x).squeeze()
+        edge_index = remove_self_loops(data.edge_index)[0]
+        row, col = edge_index[0], edge_index[1]
+
+        iset = (data.x >= 0.5).squeeze()
+
+        if is_iset(iset, row, col) and any(iset):
+            p[iset] = - torch.inf
+
+            while True:
+                idx = torch.argmax(p)
+                iset[idx] = True
+                p[idx] = - torch.inf
+
+                if not is_iset(iset, row, col):
+                    iset[idx] = False
+                    break
+
+            iset_list.append(iset.sum())
+
+        else:
+            iset = torch.zeros_like(iset)
+            
+            while True:
+                idx = torch.argmax(p)
+                iset[idx] = True
+                p[idx] = - torch.inf
+
+                if not is_iset(iset, row, col):
+                    iset[idx] = False
+                    break
+
+            iset_list.append(iset.sum())
+
+    return torch.Tensor(iset_list).mean()
+
+
+def is_iset(iset, row, col):
+
+    edges = iset[row] * iset[col]
+
+    return all(edges == 0.)

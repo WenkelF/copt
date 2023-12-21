@@ -1,0 +1,74 @@
+---
+out_dir: results
+metric_best: mae
+num_workers: 4
+dim_in: 4
+wandb:
+  use: True
+  name: sweep
+  project: copt_graphgym
+  entity: wenkelf
+dataset:
+  format: er_test
+  task: graph
+  # task_type: classification
+  split_mode: cv-kfold-5
+  split_dir: splits
+  node_encoder: False
+  node_encoder_name: RWSE
+posenc_LapPE:
+  enable: false
+  eigen:
+    laplacian_norm: none
+    eigvec_norm: L2
+    max_freqs: 4
+    skip_zero_freq: true
+    eigvec_abs: true
+  model: DeepSet
+  dim_pe: 128
+  layers: 2
+  n_heads: 4  # Only used when `posenc.model: Transformer`
+  raw_norm_type: none
+posenc_RWSE:
+  enable: false
+  kernel:
+    times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
+  model: Linear
+  dim_pe: 128
+  raw_norm_type: BatchNorm
+train:
+  mode: copt
+  # compile: True
+  task: mis
+  batch_size: 256
+  eval_period: 1
+  ckpt_period: 100
+  ckpt_best: true
+model:
+  type: gnn
+  loss_fun: mis_loss
+  loss_beta: 2.0
+  edge_decoding: dot
+  graph_pooling: mean
+gnn:
+  head: copt_inductive_node
+  layers_pre_mp: 1
+  layers_mp: 32
+  layers_post_mp: 1
+  dim_inner: 256
+  layer_type: gcnconv
+  stage_type: skipsum
+  batchnorm: true
+  act: relu
+  last_act: sigmoid
+  last_norm: null
+  dropout: 0.3
+  agg: mean
+  normalize_adj: false
+optim:
+  base_lr: 0.003
+  max_epoch: 200
+  optimizer: adamW
+  weight_decay: 1e-5
+  scheduler: cosine_with_warmup
+  num_warmup_epochs: 5

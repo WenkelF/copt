@@ -3,8 +3,12 @@ from typing import Union, Tuple, List, Dict, Any
 import torch
 
 from torch_geometric.data import Batch
-from torch_geometric.utils import to_dense_adj, unbatch, unbatch_edge_index #, to_torch_sparse_tensor
+from torch_geometric.utils import unbatch, unbatch_edge_index, remove_self_loops #, to_torch_sparse_tensor
 from torch_geometric.graphgym.register import register_loss
+
+from torch_scatter import scatter
+
+from copy import deepcopy
 
 
 def accuracy(output, target):
@@ -183,3 +187,37 @@ def plantedclique_loss_pyg(data):
 
     return ce_loss(data.x, data.y.unsqueeze(-1))
 
+
+@register_loss("mds_loss")
+def mds_loss_pyg(data, beta=1.0):
+
+    batch_size = data.batch.max() + 1.0
+    
+    p = data.x.squeeze()
+    edge_index = remove_self_loops(data.edge_index)[0]
+    row, col = edge_index[0], edge_index[1]
+
+    loss = p.sum() + beta * (
+        scatter(
+            torch.log1p(-p)[row],
+            index=col,
+            reduce='sum',
+        ).exp() * (1 - p)
+    ).sum()
+
+    return loss / batch_size
+
+
+@register_loss("mis_loss")
+def mis_loss_pyg(data, beta=1.0, k=2):
+    batch_size = data.batch.max() + 1.0
+
+    edge_index = remove_self_loops(data.edge_index)[0]
+    row, col = edge_index[0], edge_index[1]
+
+    l1 = - data.x.sum()
+    l2 = + ((data.x[row] * data.x[col]) ** k).sum()
+
+    loss = l1 + beta * l2
+
+    return loss / batch_size

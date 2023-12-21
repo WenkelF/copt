@@ -21,6 +21,9 @@ from utils.metrics import (
     maxclique_loss_pyg,
     maxclique_ratio_pyg,
     plantedclique_acc_pyg,
+    ds_size_pyg,
+    ds_acc_pyg,
+    mis_size_pyg,
 )
 
 OPTIMIZER_DICT = {
@@ -38,26 +41,38 @@ GNN_MODEL_DICT = {
 LAST_ACTIVATION_DICT = {
     "maxcut": nn.Sigmoid(),
     "maxclique": nn.Sigmoid(),
+    "mds": None,
+    # "mds": nn.Sigmoid(),
     # "maxclique": None,
 }
 
 LAST_NORMALIZATION_DICT = {
     "maxcut": None,
     "maxclique": None,
+    "mds": None,
+    "mis": None,
     # "maxclique": min_max_norm_pyg,
 }
 
 LOSS_FUNCTION_DICT = {
     "maxcut": maxcut_loss_pyg,
     "maxclique": maxclique_loss_pyg,
+    # "mds": mds_loss_pyg,
+
 }
     
 EVAL_FUNCTION_DICT = {
     "maxcut": {"mae": maxcut_mae_pyg, "acc": maxcut_acc_pyg, "size": maxcut_size_pyg},
     "maxclique": {"approx_ratio": maxclique_ratio_pyg},
+    "mds": {"size": ds_size_pyg},
+    "mis": {"size": mis_size_pyg},
     "plantedclique": {"acc": plantedclique_acc_pyg},
+    # "mds": {"size": ds_size_pyg, "p_valid": ds_acc_pyg},
 }
     
 EVAL_FUNCTION_DICT_NOLABEL = {
     "maxcut": {"size": maxcut_size_pyg},
+    "mds": {"size": ds_size_pyg},
+    "mis": {"size": mis_size_pyg},
+    # "mds": {"size": ds_size_pyg, "p_valid": ds_acc_pyg},
 }
