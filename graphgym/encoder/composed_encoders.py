@@ -43,14 +43,14 @@ def concat_node_encoders(encoder_classes, pe_enc_names):
 
         def __init__(self, dim_emb):
             super().__init__()
-            
-            if cfg.posenc_EquivStableLapPE.enable: # Special handling for Equiv_Stable LapPE where node feats and PE are not concat
+
+            if cfg.posenc_EquivStableLapPE.enable:  # Special handling for Equiv_Stable LapPE where node feats and PE are not concat
                 self.encoder1 = self.enc1_cls(dim_emb)
                 self.encoder2 = self.enc2_cls(dim_emb)
             else:
                 # PE dims can only be gathered once the cfg is loaded.
                 enc2_dim_pe = getattr(cfg, f"posenc_{self.enc2_name}").dim_pe
-            
+
                 self.encoder1 = self.enc1_cls(dim_emb - enc2_dim_pe)
                 self.encoder2 = self.enc2_cls(dim_emb, expand_x=False)
 
@@ -103,7 +103,7 @@ def concat_node_encoders(encoder_classes, pe_enc_names):
 
 # Dataset-specific node encoders.
 ds_encs = {'Atom': AtomEncoder,
-        #    'ASTNode': ASTNodeEncoder,
+           #    'ASTNode': ASTNodeEncoder,
            'PPANode': PPANodeEncoder,
            'TypeDictNode': TypeDictNodeEncoder,
            'VOCNode': VOCNodeEncoder,

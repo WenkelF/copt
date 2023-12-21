@@ -1,3 +1,4 @@
+from multiprocessing import cpu_count
 from typing import Optional, Callable, List
 
 import os.path as osp
@@ -14,26 +15,29 @@ from graphgym.utils import parallelize_fn
 
 
 class ERDataset(InMemoryDataset):
-    def __init__(self, format, root, transform=None, pre_transform=None, multiprocessing=False):
-        self.format = format
-        self.multiprocessing = multiprocessing
+    def __init__(self, name, root, transform=None, pre_transform=None):
+        self.name = name
+        self.params = getattr(cfg.er, self.name)
+        self.multiprocessing = cfg.dataset.multiprocessing
+        if self.multiprocessing:
+            self.num_workers = cfg.num_workers if cfg.num_workers > 0 else cpu_count()
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0])
         self.name = ''
 
     @property
     def processed_dir(self) -> str:
-        return osp.join(self.root, 'processed')
+        return osp.join(self.root, self.name, 'processed')
 
     @property
     def processed_file_names(self):
         return ['data.pt']
 
     def create_graph(self, idx):
-        n = np.random.randint(cfg[self.format].n_min, cfg[self.format].n_max + 1)
-        g = nx.fast_gnp_random_graph(n, p=cfg[self.format].p)
+        n = np.random.randint(self.params.n_min, self.params.n_max + 1)
+        g = nx.fast_gnp_random_graph(n, p=self.params.p)
         while not nx.is_connected(g):
-            g = nx.fast_gnp_random_graph(n, p=cfg[self.format].p)
+            g = nx.fast_gnp_random_graph(n, p=self.params.p)
 
         if isinstance(g, nx.DiGraph):
             g = g.to_undirected()
@@ -46,10 +50,10 @@ class ERDataset(InMemoryDataset):
         
         logger.info("Generating graphs...")
         if self.multiprocessing:
-            logger.info(f"   num_processes={cfg.dataset.num_workers}")
-            data_list = parallelize_fn(range(cfg[self.format].num_samples), self.create_graph, num_processes=cfg.dataset.num_workers)
+            logger.info(f"   num_processes={self.num_workers}")
+            data_list = parallelize_fn(range(cfg.er.num_samples), self.create_graph, num_processes=self.num_workers)
         else:
-            data_list = [self.create_graph(idx) for idx in range(cfg[self.format].num_samples)]
+            data_list = [self.create_graph(idx) for idx in range(cfg.er.num_samples)]
 
         logger.info("Filtering data...")
         if self.pre_filter is not None:
@@ -58,8 +62,8 @@ class ERDataset(InMemoryDataset):
         logger.info("pre transform data...")
         if self.pre_transform is not None:
             if self.multiprocessing:
-                logger.info(f"   num_processes={cfg.dataset.num_workers}")
-                data_list = parallelize_fn(data_list, self.pre_transform, num_processes=cfg.dataset.num_workers)
+                logger.info(f"   num_processes={self.num_workers}")
+                data_list = parallelize_fn(data_list, self.pre_transform, num_processes=self.num_workers)
             else:
                 data_list = [self.pre_transform(data) for data in data_list]
 
