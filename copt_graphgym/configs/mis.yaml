@@ -9,13 +9,17 @@ wandb:
   project: copt_graphgym
   entity: wenkelf
 dataset:
-  format: er_test
+  format: er
+  name: v50_02
   task: graph
   # task_type: classification
   split_mode: cv-kfold-5
   split_dir: splits
   node_encoder: False
   node_encoder_name: RWSE
+  set_graph_stats: true
+  graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
+  multiprocessing: true
 posenc_LapPE:
   enable: false
   eigen:

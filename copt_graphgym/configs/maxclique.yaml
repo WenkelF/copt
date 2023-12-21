@@ -1,16 +1,16 @@
 ---
 out_dir: results
-metric_best: acc
+metric_best: mae
 num_workers: 4
-dim_in: 4
+dim_in: 3
 wandb:
   use: True
-  name: sweep
-  project: copt_graphgym
-  entity: wenkelf
+  name: test
+  project: copt-pyg
+  entity: semo
 dataset:
-  format: pc
-  name: v100_40
+  format: rb
+  name: small
   task: graph
   # task_type: classification
   split_mode: cv-kfold-5
@@ -43,33 +43,33 @@ posenc_RWSE:
 train:
   mode: copt
   # compile: True
-  task: plantedclique
-  batch_size: 64
+  task: maxclique
+  batch_size: 256
   eval_period: 1
   ckpt_period: 100
   ckpt_best: true
 model:
   type: gnn
-  loss_fun: plantedclique_loss
+  loss_fun: maxcut_loss
   edge_decoding: dot
   graph_pooling: mean
 gnn:
-  head: copt_graph
+  head: copt_inductive_node
   layers_pre_mp: 1
-  layers_mp: 2
+  layers_mp: 12
   layers_post_mp: 1
   dim_inner: 256
-  layer_type: hybrid
+  layer_type: hybridconv
   stage_type: skipsum
   batchnorm: true
   act: relu
-  last_act: null
+  last_act: sigmoid
   dropout: 0.3
   agg: mean
   normalize_adj: false
 optim:
   base_lr: 0.003
-  max_epoch: 200
+  max_epoch: 300
   optimizer: adamW
   weight_decay: 1e-5
   scheduler: cosine_with_warmup
