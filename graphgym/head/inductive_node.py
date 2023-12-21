@@ -56,10 +56,12 @@ class COPTInductiveNodeHead(nn.Module):
             new_layer_config(dim_in, dim_out, cfg.gnn.layers_post_mp,
                              has_act=False, has_bias=True, cfg=cfg))
         self.last_act = None if cfg.gnn.last_act is None else register.act_dict[cfg.gnn.last_act]()
+        self.last_norm = None if cfg.gnn.last_norm is None else register.norm_dict[cfg.gnn.last_norm]
 
     def forward(self, batch):
         batch = self.layer_post_mp(batch)
         batch = batch if self.last_act is None else self.last_act(batch)
+        batch = batch if self.last_norm is None else self.last_norm(batch)
         return batch
 
 @register_head('inductive_node_multi')

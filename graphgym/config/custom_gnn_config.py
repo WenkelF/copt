@@ -18,6 +18,7 @@ def custom_gnn_cfg(cfg):
     cfg.gnn.att_concat_proj = False
 
     cfg.gnn.last_act = None
+    cfg.gnn.last_norm = None
 
 
     cfg.gnn.hybrid = CN()
