@@ -3,7 +3,7 @@ from typing import Union, Tuple, List, Dict, Any
 import torch
 
 from torch_geometric.data import Batch
-from torch_geometric.utils import unbatch, unbatch_edge_index, remove_self_loops #, to_torch_sparse_tensor
+from torch_geometric.utils import unbatch, unbatch_edge_index, remove_self_loops
 from torch_geometric.graphgym.register import register_loss
 
 from torch_scatter import scatter
@@ -15,7 +15,7 @@ def accuracy(output, target):
 
     return torch.mean((output.argmax(-1) == target).float())
 
-@register_loss("maxclique_loss")
+
 def maxclique_loss(output, data, beta=0.1):
 
     adj = data.get('adj')

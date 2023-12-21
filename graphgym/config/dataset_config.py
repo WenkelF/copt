@@ -34,7 +34,7 @@ def dataset_cfg(cfg):
     cfg.dataset.graph_stats = ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
 
     cfg.dataset.multiprocessing = True
-    cfg.dataset.label = True
+    cfg.dataset.label = False
 
 
 @register_config('satlib_cfg')

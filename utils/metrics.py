@@ -8,6 +8,8 @@ from torch_geometric.data import Batch
 from torch_geometric.utils import unbatch, unbatch_edge_index,  add_self_loops, remove_self_loops
 from torch_scatter import scatter
 
+from torch_geometric.graphgym.register import register_loss
+
 from copy import deepcopy
 
 
@@ -16,6 +18,7 @@ def accuracy(output, target):
     return torch.mean((output.argmax(-1) == target).float())
 
 
+@register_loss("maxclique_loss")
 def maxclique_loss_pyg(batch, beta=0.1):
 
     data_list = batch.to_data_list()
@@ -29,6 +32,17 @@ def maxclique_loss_pyg(batch, beta=0.1):
         loss += (- loss1 + beta * loss2) * data.num_nodes
 
     return loss / batch.size(0)
+
+
+def maxclique_size_pyg(batch, dec_length=300):
+
+    batch = maxclique_decoder_pyg(batch, dec_length=dec_length)
+
+    data_list = batch.to_data_list()
+
+    size_list = [data.c.sum() for data in data_list]
+
+    return torch.Tensor(size_list).mean()
 
 
 def maxclique_ratio_pyg(batch, dec_length=300):
@@ -52,7 +66,8 @@ def maxclique_decoder_pyg(batch, dec_length=300):
         order = torch.argsort(data.x, dim=0, descending=True)
         c = torch.zeros_like(data.x)
 
-        src, dst = data.edge_index[0], data.edge_index[1]
+        edge_index = remove_self_loops(data.edge_index)[0]
+        src, dst = edge_index[0], edge_index[1]
         
         c[order[0]] = 1
         for idx in range(1, min(dec_length, data.num_nodes)):
@@ -251,7 +266,7 @@ def plantedclique_acc_pyg(data):
     return torch.mean((pred.float() == data.y).float())
 
 
-def ds_size_pyg(data):
+def mds_size_pyg(data):
     data_list = data.to_data_list()
 
     ds_list = []
@@ -279,7 +294,7 @@ def ds_size_pyg(data):
     return torch.Tensor(ds_list).mean()
 
 
-def ds_acc_pyg(data):
+def mds_acc_pyg(data):
     data_list = data.to_data_list()
 
     ds_list = []
