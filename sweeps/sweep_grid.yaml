@@ -2,7 +2,7 @@ command:
   - python
   - ${program}
   - --cfg
-  - copt_graphgym/configs/maxcut.yaml
+  - copt_graphgym/configs/mds.yaml
   - ${args_no_hyphens}
 
 name: grid_search -- ba graphs
@@ -10,7 +10,7 @@ method: grid
 
 metric:
   name: size/valid
-  goal: maximize
+  goal: minimize
 
 parameters:
   dataset.format:
@@ -30,7 +30,7 @@ parameters:
       # - pc_test
       # - pc_100_40
 
-      - ba_small
+      # - ba_small
       - ba_large
 
   dataset.label:
@@ -38,11 +38,11 @@ parameters:
 
   gnn.layer_type:
     values:
-      # - hybridconv
-      - gcnconv
-      - ginconv
-      - gatconv
-      - gatv2conv
+      - hybridconv
+      # - gcnconv
+      # - ginconv
+      # - gatconv
+      # - gatv2conv
 
   gnn.layers_pre_mp:
     values:
@@ -58,13 +58,13 @@ parameters:
       # - 2
       # - 4
       # - 6
-      - 8
+      # - 8
       # - 10
       # - 12
       # - 14
       - 16
-      - 24
-      - 32
+      # - 24
+      # - 32
       # - 64
 
   gnn.dim_inner:
@@ -92,10 +92,10 @@ parameters:
   #     - True
   #     - False
 
-  # gnn.hybrid.combine_fn:
-  #   values:
-  #     - cat
-  #     - att
+  gnn.hybrid.combine_fn:
+    values:
+      - cat
+      - att
 
   # gnn.hybrid.num_heads:
   #   values:
@@ -103,6 +103,14 @@ parameters:
   #     - 2
   #     - 4
   #     - 8
+
+  # model.loss_beta:
+  #   values:
+  #     - "0.5"
+  #     - "1.0"
+  #     - "1.5"
+  #     - "2.0"
+  #     - "4.0"
 
   train.batch_size:
     value: 64
