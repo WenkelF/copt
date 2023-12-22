@@ -61,11 +61,7 @@ def generate_sample(
             pass
 
         elif task == "maxcut":
-            cut = dnx.maximum_cut(g, dimod.SimulatedAnnealingSampler())
-            cut_size = max(len(cut), n - len(cut))
-            cut_binary = torch.zeros((num_nodes, 1), dtype=torch.int)
-            cut_binary[torch.tensor(list(cut))] = 1
-
+            cut_size, cut_binary = compute_maxcut(g)
             target = {
                 "cut_size": cut_size,  
                 "cut_binary": cut_binary,
@@ -130,6 +126,18 @@ def generate_features(
     feat, tag = transfer_feat_level(feat, in_level, out_level)
 
     return {tag + name: feat}
+
+
+def compute_maxcut(g):
+    adj = torch.from_numpy(nx.to_numpy_array(g))
+    num_nodes = adj.size(0)
+
+    cut = dnx.maximum_cut(g, dimod.SimulatedAnnealingSampler())
+    cut_size = max(len(cut), g.number_of_nodes() - len(cut))
+    cut_binary = torch.zeros((num_nodes, 1), dtype=torch.int)
+    cut_binary[torch.tensor(list(cut))] = 1
+
+    return cut_size, cut_binary
 
 
 def compute_degrees(

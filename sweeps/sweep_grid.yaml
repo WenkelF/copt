@@ -1,0 +1,118 @@
+command:
+  - python
+  - ${program}
+  - --cfg
+  - copt_graphgym/configs/mds.yaml
+  - ${args_no_hyphens}
+
+name: grid_search -- ba graphs
+method: grid
+
+metric:
+  name: size/valid
+  goal: minimize
+
+parameters:
+  dataset.format:
+    values:
+      # - er
+      # - bp
+
+      # - er_50_02
+      # - er_50_03
+      # - er_50_04
+
+      # - bp_20_00
+      # - bp_20_01
+      # - bp_20_02
+      # - bp_20_03
+
+      # - pc_test
+      # - pc_100_40
+
+      # - ba_small
+      - ba_large
+
+  dataset.label:
+    value: False
+
+  gnn.layer_type:
+    values:
+      - hybridconv
+      # - gcnconv
+      # - ginconv
+      # - gatconv
+      # - gatv2conv
+
+  gnn.layers_pre_mp:
+    values:
+      - 4
+      
+  gnn.layers_post_mp:
+    values:
+      - 1
+
+  gnn.layers_mp:
+    values:
+      # - 1
+      # - 2
+      # - 4
+      # - 6
+      # - 8
+      # - 10
+      # - 12
+      # - 14
+      - 16
+      # - 24
+      # - 32
+      # - 64
+
+  gnn.dim_inner:
+    values:
+      # - 32
+      # - 64
+      # - 128
+      - 256
+      # - 512
+
+  optim.base_lr:
+    value: 0.003
+
+  optim.max_epoch:
+    value: 50
+
+  seed:
+    values:
+      - 1
+      - 2
+      - 3
+
+  # gnn.hybrid.residual:
+  #   values:
+  #     - True
+  #     - False
+
+  gnn.hybrid.combine_fn:
+    values:
+      - cat
+      - att
+
+  # gnn.hybrid.num_heads:
+  #   values:
+  #     - 1
+  #     - 2
+  #     - 4
+  #     - 8
+
+  # model.loss_beta:
+  #   values:
+  #     - "0.5"
+  #     - "1.0"
+  #     - "1.5"
+  #     - "2.0"
+  #     - "4.0"
+
+  train.batch_size:
+    value: 64
+
+program: main_graphgym.py

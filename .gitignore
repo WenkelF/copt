@@ -11,8 +11,12 @@ conductance.ipynb
 
 lightning_logs/
 results/
+outputs/
 combopt/
 copt/
 __pycache__/
 wandb/
 combopt/
+
+splits/
+datasets/

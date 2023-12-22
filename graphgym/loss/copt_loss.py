@@ -2,13 +2,11 @@ from typing import Union, Tuple, List, Dict, Any
 
 import torch
 
-import time
-
 from torch_geometric.data import Batch
-from torch_geometric.utils import unbatch, unbatch_edge_index,  add_self_loops, remove_self_loops
-from torch_scatter import scatter
-
+from torch_geometric.utils import unbatch, unbatch_edge_index, remove_self_loops
 from torch_geometric.graphgym.register import register_loss
+
+from torch_scatter import scatter
 
 from copy import deepcopy
 
@@ -16,70 +14,6 @@ from copy import deepcopy
 def accuracy(output, target):
 
     return torch.mean((output.argmax(-1) == target).float())
-
-
-@register_loss("maxclique_loss")
-def maxclique_loss_pyg(batch, beta=0.1):
-
-    data_list = batch.to_data_list()
-
-    loss = 0.0
-    for data in data_list:
-        src, dst = data.edge_index[0], data.edge_index[1]
-
-        loss1 = torch.sum(data.x[src] * data.x[dst])
-        loss2 = data.x.sum() ** 2 - loss1 - torch.sum(data.x ** 2)
-        loss += (- loss1 + beta * loss2) * data.num_nodes
-
-    return loss / batch.size(0)
-
-
-def maxclique_size_pyg(batch, dec_length=300):
-
-    batch = maxclique_decoder_pyg(batch, dec_length=dec_length)
-
-    data_list = batch.to_data_list()
-
-    size_list = [data.c.sum() for data in data_list]
-
-    return torch.Tensor(size_list).mean()
-
-
-def maxclique_ratio_pyg(batch, dec_length=300):
-
-    batch = maxclique_decoder_pyg(batch, dec_length=dec_length)
-
-    data_list = batch.to_data_list()
-
-    metric_list = []
-    for data in data_list:
-        metric_list.append(data.c.sum() / data.mc_size)
-
-    return torch.Tensor(metric_list).mean()
-
-
-def maxclique_decoder_pyg(batch, dec_length=300):
-
-    data_list = batch.to_data_list()
-
-    for data in data_list:
-        order = torch.argsort(data.x, dim=0, descending=True)
-        c = torch.zeros_like(data.x)
-
-        edge_index = remove_self_loops(data.edge_index)[0]
-        src, dst = edge_index[0], edge_index[1]
-        
-        c[order[0]] = 1
-        for idx in range(1, min(dec_length, data.num_nodes)):
-            c[order[idx]] = 1
-
-            cTWc = torch.sum(c[src] * c[dst])
-            if c.sum() ** 2 - cTWc - torch.sum(c ** 2) != 0:
-                c[order[idx]] = 0
-
-        data.c = c
-
-    return Batch.from_data_list(data_list)
 
 
 def maxclique_loss(output, data, beta=0.1):
@@ -130,7 +64,7 @@ def maxbipartite_decoder(output, adj, dec_length):
 
     return maxclique_decoder(output, torch.matrix_power(adj, 2), dec_length)
 
-
+@register_loss("maxcut_loss")
 def maxcut_loss_pyg(data):
     x = (data.x - 0.5) * 2
     src, dst = data.edge_index[0], data.edge_index[1]
@@ -138,8 +72,8 @@ def maxcut_loss_pyg(data):
     return torch.sum(x[src] * x[dst]) / len(data.batch.unique())
 
 
+@register_loss("maxcut_mae")
 def maxcut_mae_pyg(data):
-
     x = (data.x > 0.5).float()
     x = (x - 0.5) * 2
     y = data.cut_binary
@@ -174,21 +108,6 @@ def maxcut_acc_pyg(data):
         comparison_list.append(x_cut >= y_cut)
 
     return torch.Tensor(comparison_list).mean()
-
-
-def maxcut_size_pyg(data):
-
-    x = (data.x > 0.5).float()
-    x = (x - 0.5) * 2
-
-    x_list = unbatch(x, data.batch)
-    edge_index_list = unbatch_edge_index(data.edge_index, data.batch)
-
-    cut_list = []
-    for x, edge_index in zip(x_list, edge_index_list):
-        cut_list.append(torch.sum(x[edge_index[0]] * x[edge_index[1]] == -1.0) / 2)
-
-    return torch.Tensor(cut_list).mean()
 
 
 def maxcut_loss(data):
@@ -260,117 +179,45 @@ def color_acc(output, adj, deg_vect):
     return (torch.matmul(bin_enc.transpose(-1, -2), torch.matmul(adj, bin_enc)).diagonal(dim1=-1, dim2=-2).sum(-1) / deg_vect).mean()
 
 
-def plantedclique_acc_pyg(data):
-    pred = torch.sigmoid(data.x) >= 0.5
+from torch.nn import BCEWithLogitsLoss
+ce_loss = BCEWithLogitsLoss()
 
-    return torch.mean((pred.float() == data.y).float())
+@register_loss("plantedclique_loss")
+def plantedclique_loss_pyg(data):
 
-
-def mds_size_pyg(data):
-    data_list = data.to_data_list()
-
-    ds_list = []
-    for data in data_list:
-        p = deepcopy(data.x).squeeze()
-        edge_index = add_self_loops(data.edge_index)[0]
-        row, col = edge_index[0], edge_index[1]
-
-        ds = (data.x >= 0.5).squeeze()
-        p[ds] = - torch.inf
-       
-        t0 = time.time()
-        while not is_ds(ds, row, col):
-            idx = torch.argmax(p)
-            ds[idx] = True
-            p[idx] = - torch.inf
-            if time.time() - t0 > 30:
-                break
-
-        if is_ds(ds, row, col):
-            ds_list.append(ds.sum())
-        else:
-            ds_list.append(torch.nan)
-
-    return torch.Tensor(ds_list).mean()
+    return ce_loss(data.x, data.y.unsqueeze(-1))
 
 
-def mds_acc_pyg(data):
-    data_list = data.to_data_list()
+@register_loss("mds_loss")
+def mds_loss_pyg(data, beta=1.0):
 
-    ds_list = []
-    for data in data_list:
-        p = deepcopy(data.x).squeeze()
-        edge_index = add_self_loops(data.edge_index)[0]
-        row, col = edge_index[0], edge_index[1]
+    batch_size = data.batch.max() + 1.0
+    
+    p = data.x.squeeze()
+    edge_index = remove_self_loops(data.edge_index)[0]
+    row, col = edge_index[0], edge_index[1]
 
-        ds = (data.x >= 0.5).squeeze()
+    loss = p.sum() + beta * (
+        scatter(
+            torch.log1p(-p)[row],
+            index=col,
+            reduce='sum',
+        ).exp() * (1 - p)
+    ).sum()
 
-        p[ds] = - torch.inf
-        
-        while not is_ds(ds, row, col):
-            idx = torch.argmax(p)
-            ds[idx] = True
-            p[idx] = - torch.inf
-
-        if is_ds(ds, row, col):
-            ds_list.append(True)
-        else:
-            ds_list.append(False)
-
-    return torch.Tensor(ds_list).mean()
+    return loss / batch_size
 
 
-def is_ds(ds, row, col):
-    agg = scatter(ds.float()[row], index=col, reduce='sum')
-    visited = agg >= 1.0
+@register_loss("mis_loss")
+def mis_loss_pyg(data, beta=1.0, k=2):
+    batch_size = data.batch.max() + 1.0
 
-    return all(visited)
+    edge_index = remove_self_loops(data.edge_index)[0]
+    row, col = edge_index[0], edge_index[1]
 
+    l1 = - data.x.sum()
+    l2 = + ((data.x[row] * data.x[col]) ** k).sum()
 
-def mis_size_pyg(data):
-    data_list = data.to_data_list()
+    loss = l1 + beta * l2
 
-    iset_list = []
-    for data in data_list:
-        p = deepcopy(data.x).squeeze()
-        edge_index = remove_self_loops(data.edge_index)[0]
-        row, col = edge_index[0], edge_index[1]
-
-        iset = (data.x >= 0.5).squeeze()
-
-        if is_iset(iset, row, col) and any(iset):
-            p[iset] = - torch.inf
-
-            while True:
-                idx = torch.argmax(p)
-                iset[idx] = True
-                p[idx] = - torch.inf
-
-                if not is_iset(iset, row, col):
-                    iset[idx] = False
-                    break
-
-            iset_list.append(iset.sum())
-
-        else:
-            iset = torch.zeros_like(iset)
-            
-            while True:
-                idx = torch.argmax(p)
-                iset[idx] = True
-                p[idx] = - torch.inf
-
-                if not is_iset(iset, row, col):
-                    iset[idx] = False
-                    break
-
-            iset_list.append(iset.sum())
-
-    return torch.Tensor(iset_list).mean()
-
-
-def is_iset(iset, row, col):
-
-    edges = iset[row] * iset[col]
-
-    return all(edges == 0.)
+    return loss / batch_size
