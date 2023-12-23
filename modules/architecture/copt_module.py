@@ -20,9 +20,9 @@ class COPTModule(GraphGymModule):
         super().__init__(dim_in, dim_out, cfg)
 
         # Loss function
-        self.loss_func = register.loss_dict[cfg.model.loss_fun]
-        if cfg.model.loss_beta is not None:
-            self.loss_func = partial(self.loss_func, beta=cfg.model.loss_beta)
+        loss_func = register.loss_dict[cfg.model.loss_fun]
+        loss_params = cfg[cfg.model.loss_fun]
+        self.loss_func = partial(loss_func, **loss_params)
 
         # Eval function
         if not cfg.dataset.label:
