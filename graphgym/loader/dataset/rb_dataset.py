@@ -1,42 +1,22 @@
-from multiprocessing import cpu_count
-from typing import Optional, Callable, List
-
 import itertools
 import random
 import json
-from tqdm import tqdm
-import os.path as osp
-from loguru import logger
 
+from tqdm import tqdm
 import numpy as np
 import networkx as nx
-import torch
-from torch_geometric.data import InMemoryDataset
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.utils.convert import from_networkx
 
-from graphgym.utils import parallelize_fn
+from graphgym.loader.dataset.synthetic import SyntheticDataset
 
 
-class RBDataset(InMemoryDataset):
+class RBDataset(SyntheticDataset):
     def __init__(self, name, root, transform=None, pre_transform=None):
-        self.name = name
-        self.n, self.na, self.k = getattr(cfg.rb, self.name)['n'], getattr(cfg.rb, self.name)['na'], getattr(cfg.rb, self.name)['k']
-        self.multiprocessing = cfg.dataset.multiprocessing
-        if self.multiprocessing:
-            self.num_workers = cfg.num_workers if cfg.num_workers > 0 else cpu_count()
-        super().__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.n, self.na, self.k = getattr(cfg.rb, name)['n'], getattr(cfg.rb, name)['na'], getattr(cfg.rb, name)['k']
+        super().__init__('rb', name, root, transform, pre_transform)
 
-    @property
-    def processed_dir(self) -> str:
-        return osp.join(self.root, self.name, 'processed')
-
-    @property
-    def processed_file_names(self):
-        return ['data.pt']
-
-    def create_graph(self):
+    def gen_graph(self):
         na = np.random.randint(self.na[0], self.na[1])
         k = np.random.randint(self.k[0], self.k[1])
         p = np.random.uniform(0.3, 1.0)
@@ -49,41 +29,14 @@ class RBDataset(InMemoryDataset):
 
         return g
 
-    def validate_graph(self, idx):
+    def create_graph(self, idx):
         while True:
-            g = self.create_graph()
+            g = self.gen_graph()
             g.remove_nodes_from(list(nx.isolates(g)))
             if self.n[0] <= g.number_of_nodes() <= self.n[1]:
                 break
         g_pyg = from_networkx(g)
         return g_pyg
-
-    def process(self):
-        # Read data into huge `Data` list.
-
-        logger.info("Generating graphs...")
-        if self.multiprocessing:
-            logger.info(f"   num_processes={self.num_workers}")
-            data_list = parallelize_fn(range(cfg.rb.num_samples), self.validate_graph,
-                                       num_processes=self.num_workers)
-        else:
-            data_list = [self.validate_graph(idx) for idx in range(cfg.rb.num_samples)]
-
-        logger.info("Filtering data...")
-        if self.pre_filter is not None:
-            data_list = [data for data in data_list if self.pre_filter(data)]
-
-        logger.info("pre transform data...")
-        if self.pre_transform is not None:
-            if self.multiprocessing:
-                logger.info(f"   num_processes={self.num_workers}")
-                data_list = parallelize_fn(data_list, self.pre_transform, num_processes=self.num_workers)
-            else:
-                data_list = [self.pre_transform(data) for data in data_list]
-
-        logger.info("Saving data...")
-        data, slices = self.collate(data_list)
-        torch.save((data, slices), self.processed_paths[0])
 
 
 ####

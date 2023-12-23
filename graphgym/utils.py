@@ -221,3 +221,8 @@ def parallelize_fn_tqdm(instances, fn, num_processes):
                 results.append(result)
                 pbar.update()
     return results
+
+
+def fun_pbar(fn, input, pbar):
+    pbar.update(1)
+    return fn(input)
