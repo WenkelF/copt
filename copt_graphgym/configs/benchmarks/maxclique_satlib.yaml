@@ -1,7 +1,7 @@
 ---
 out_dir: results
 metric_best: mae
-num_workers: 4
+num_workers: 8
 dim_in: 3
 wandb:
   use: True
@@ -9,16 +9,17 @@ wandb:
   project: copt-pyg
   entity: semo
 dataset:
-  format: rb
-  name: small
+  format: SATLIB
   task: graph
   # task_type: classification
   split_mode: cv-kfold-5
   split_dir: splits
   node_encoder: False
   node_encoder_name: RWSE
-  set_graph_stats: true
+  set_graph_stats: false
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
+  multiprocessing: true
+  label: false
 posenc_LapPE:
   enable: false
   eigen:
@@ -49,7 +50,7 @@ train:
   ckpt_best: true
 model:
   type: gnn
-  loss_fun: maxcut_loss
+  loss_fun: maxclique_loss
   edge_decoding: dot
   graph_pooling: mean
 gnn:

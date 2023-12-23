@@ -1,15 +1,15 @@
 ---
 out_dir: results
 metric_best: mae
-num_workers: 4
+num_workers: 8
 dim_in: 4
 wandb:
   use: True
   name: test
-  project: copt_graphgym
-  entity: wenkelf
+  project: copt-pyg
+  entity: semo
 dataset:
-  format: rb
+  format: ba
   name: small
   task: graph
   # task_type: classification
@@ -18,9 +18,9 @@ dataset:
   node_encoder: False
   node_encoder_name: RWSE
   set_graph_stats: true
-  graph_stats: [ 'degree', 'eccentricity', 'cluster_coefficient', 'triangle_count' ]
+  graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
-  label: false
+  label: true
 posenc_LapPE:
   enable: false
   eigen:
@@ -44,14 +44,14 @@ posenc_RWSE:
 train:
   mode: copt
   # compile: True
-  task: maxclique
+  task: maxcut
   batch_size: 256
   eval_period: 1
   ckpt_period: 100
   ckpt_best: true
 model:
   type: gnn
-  loss_fun: maxclique_loss
+  loss_fun: maxcut_loss
   edge_decoding: dot
   graph_pooling: mean
 gnn:
@@ -64,8 +64,7 @@ gnn:
   stage_type: skipsum
   batchnorm: true
   act: relu
-  last_act: null
-  last_norm: minmax
+  last_act: sigmoid
   dropout: 0.3
   agg: mean
   normalize_adj: false

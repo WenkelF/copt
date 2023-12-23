@@ -1,7 +1,7 @@
 ---
 out_dir: results
 metric_best: mae
-num_workers: 4
+num_workers: 8
 dim_in: 4
 wandb:
   use: True
@@ -19,6 +19,8 @@ dataset:
   node_encoder_name: RWSE
   set_graph_stats: true
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
+  multiprocessing: false
+  label: true
 posenc_LapPE:
   enable: false
   eigen:

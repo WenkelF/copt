@@ -20,6 +20,7 @@ dataset:
   set_graph_stats: true
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
+  label: false
 posenc_LapPE:
   enable: false
   eigen:
