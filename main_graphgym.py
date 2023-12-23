@@ -6,6 +6,9 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 import logging
 import argparse
 
+# torch.multiprocessing.set_start_method('fork')
+torch.multiprocessing.set_sharing_strategy('file_system')
+
 import graphgym  # noqa, register custom modules
 from graphgym.agg_runs import agg_runs
 from graphgym.optimizer.extra_optimizers import ExtendedSchedulerConfig
@@ -136,10 +139,10 @@ if __name__ == '__main__':
     cfg.train.mode = None  # XXX: temporary fix, need to register train.mode
     load_cfg(cfg, args)
     custom_set_out_dir(cfg, args.cfg_file, cfg.name_tag)
-    if cfg.num_workers != 0 and cfg.num_workers > multiprocessing.cpu_count():
-        logging.warning(f'cfg.num_workers is set to {cfg.num_workers} but only {multiprocessing.cpu_count()} CPUs are '
-                        f'available. Setting cfg.num_workers to {multiprocessing.cpu_count()}.')
-        cfg.num_workers = multiprocessing.cpu_count()
+    if cfg.num_workers != 0 and cfg.num_workers > torch.multiprocessing.cpu_count():
+        logging.warning(f'cfg.num_workers is set to {cfg.num_workers} but only {torch.multiprocessing.cpu_count()} CPUs are '
+                        f'available. Setting cfg.num_workers to {torch.multiprocessing.cpu_count()}.')
+        cfg.num_workers = torch.multiprocessing.cpu_count()
     dump_cfg(cfg)
     # Set Pytorch environment
     torch.set_num_threads(cfg.num_threads)
