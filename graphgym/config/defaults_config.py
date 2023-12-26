@@ -45,6 +45,7 @@ def extended_cfg(cfg):
     # true.pt, pred.pt, and bidx.pt, respectively
     cfg.train.test_dump_ckpt_path = None
     cfg.train.test_dump_period = 10  # dump every x number of epochs
+    cfg.train.val_period = 1  # run validation every x epochs
 
     # Record individual task scores in addition to the averaged scores if set
     # to True. Currently only support for regression tasks.
