@@ -6,7 +6,7 @@ dim_in: 4
 wandb:
   use: True
   name: test
-  project: copt_graphgym
+  project: co_mc
   entity: wenkelf
 dataset:
   format: rb
@@ -56,11 +56,11 @@ model:
   graph_pooling: mean
 gnn:
   head: copt_inductive_node
-  layers_pre_mp: 1
-  layers_mp: 12
+  layers_pre_mp: 4
+  layers_mp: 16
   layers_post_mp: 1
   dim_inner: 256
-  layer_type: hybridconv
+  layer_type: gcnconv
   stage_type: skipsum
   batchnorm: true
   act: relu

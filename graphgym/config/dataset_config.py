@@ -37,6 +37,8 @@ def dataset_cfg(cfg):
     cfg.dataset.multiprocessing = True
     cfg.dataset.label = False
 
+    cfg.train.batch_size_val = 256
+
 
 @register_config('satlib_cfg')
 def er_test_cfg(cfg):
