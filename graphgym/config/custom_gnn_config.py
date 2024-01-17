@@ -31,8 +31,9 @@ def custom_gnn_cfg(cfg):
     
     cfg.gnn.hybrid_v2 = CN()
     cfg.gnn.hybrid_v2.channel_list = [[0], [1], [2], [4], [0, 1], [1, 2], [2, 4]]
-    cfg.gnn.hybrid_v2.activation_att1 = 'id'
-    cfg.gnn.hybrid_v2.activation_att2 = 'leaky_relu'
-    cfg.gnn.hybrid_v2.activation = 'relu'
+    cfg.gnn.hybrid_v2.activation_att1 = 'relu'
+    cfg.gnn.hybrid_v2.activation_att2 = 'relu'
+    cfg.gnn.hybrid_v2.activation = 'leaky_relu'
     cfg.gnn.hybrid_v2.num_heads = 1
     cfg.gnn.hybrid_v2.depth_mlp = 1
+    cfg.gnn.hybrid_v2.skip = False

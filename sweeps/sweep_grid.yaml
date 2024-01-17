@@ -13,6 +13,8 @@ metric:
   goal: maximize
 
 parameters:
+  dataset.name:
+    value: small
 
   gnn.layer_type:
     value: hybridconv-v2
@@ -30,8 +32,8 @@ parameters:
   gnn.layers_mp:
     values:
       # - 1
-      # - 2
-      # - 4
+      - 2
+      - 4
       # - 6
       - 8
       # - 10
@@ -46,7 +48,7 @@ parameters:
     values:
       # - 32
       # - 64
-      # - 128
+      - 128
       - 256
       # - 512
 
@@ -67,11 +69,6 @@ parameters:
   #     - cat
   #     - att
 
-  gnn.hybrid_v2.num_heads:
-    values:
-      - 1
-      - 2
-
   # model.loss_beta:
   #   values:
   #     - "0.5"
@@ -79,32 +76,6 @@ parameters:
   #     - "1.5"
   #     - "2.0"
   #     - "4.0"
-  
-  gnn.hybrid_v2.depth_mlp:
-    values:
-      - 1
-      - 2
-  
-  gnn.hybrid_v2.activation_att1:
-    values:
-      - id
-      - relu
-      - leaky_relu
-      - elu
-
-  gnn.hybrid_v2.activation_att2:
-    values:
-      - id
-      - relu
-      - leaky_relu
-      - elu
-      
-  gnn.hybrid_v2.activation:
-    values:
-      - id
-      - relu
-      - leaky_relu
-      - elu
       
   train.batch_size:
     value: 64

@@ -60,7 +60,7 @@ gnn:
   layers_post_mp: 1
   dim_inner: 256
   layer_type: gcnconv
-  stage_type: skipsum
+  stage_type: skipsum   # other options: skipsum, skipconcat, none?
   batchnorm: true
   act: relu
   last_act: sigmoid
