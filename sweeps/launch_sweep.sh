@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#SBATCH --array=1-40%10
+#SBATCH --array=1-256%10
 
 ## Name of your SLURM job
 # SBATCH --job-name=run
@@ -14,7 +14,7 @@
 #SBATCH --cpus-per-task=4
 
 ## Time limit for the job
-#SBATCH --time=6:00:00
+#SBATCH --time=2:00:00
 
 #SBATCH --mem=10Gb
 
@@ -26,7 +26,7 @@
   
 set -e
 
-cd /home/mila/f/frederik.wenkel/projects/copt_graphgym
+cd /home/mila/f/frederik.wenkel/projects/co_expts
 
 module load miniconda/3 cuda/11.8
 
@@ -34,4 +34,4 @@ source /home/mila/f/frederik.wenkel/.bashrc
 
 conda activate /home/mila/f/frederik.wenkel/miniconda3/envs/copt
 
-wandb agent --count 1 wenkelf/copt_graphgym/r05i2trn
+wandb agent --count 1 wenkelf/co_expts/0un6mh0x

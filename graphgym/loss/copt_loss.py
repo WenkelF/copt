@@ -209,15 +209,22 @@ def mds_loss_pyg(data, beta=1.0):
 
 
 @register_loss("mis_loss")
-def mis_loss_pyg(data, beta=1.0, k=2):
+def mis_loss_pyg(data, beta=1.0, k=2, eps=1e-1):
     batch_size = data.batch.max() + 1.0
 
     edge_index = remove_self_loops(data.edge_index)[0]
     row, col = edge_index[0], edge_index[1]
+    degree = torch.exp(data.degree)
 
-    l1 = - data.x.sum()
-    l2 = + ((data.x[row] * data.x[col]) ** k).sum()
+    l1 = - torch.sum(data.x ** 2)
+    l2 = + torch.sum((data.x[row] * data.x[col]) ** 2)
+
+    # l1 = - torch.sum(torch.log(1 - data.x) * degree)
+    # l2 = + torch.log((data.x[row] * data.x[col]) ** 1).sum()
+
+    # l1 = - data.x.sum()
+    # l2 = + ((data.x[row] * data.x[col]) ** k).sum()
 
     loss = l1 + beta * l2
 
-    return loss / batch_size
+    return loss #/ batch_size

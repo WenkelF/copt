@@ -6,11 +6,11 @@ dim_in: 4
 wandb:
   use: True
   name: sweep
-  project: copt_graphgym
+  project: co_mcut
   entity: wenkelf
 dataset:
-  format: er
-  name: v50_02
+  format: ba
+  name: small
   task: graph
   # task_type: classification
   split_mode: cv-kfold-5
@@ -55,12 +55,12 @@ model:
   graph_pooling: mean
 gnn:
   head: copt_inductive_node
-  layers_pre_mp: 1
-  layers_mp: 32
+  layers_pre_mp: 4
+  layers_mp: 16
   layers_post_mp: 1
   dim_inner: 256
   layer_type: gcnconv
-  stage_type: skipsum
+  stage_type: skipsum   # other options: skipsum, skipconcat, none?
   batchnorm: true
   act: relu
   last_act: sigmoid

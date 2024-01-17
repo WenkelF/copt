@@ -42,7 +42,8 @@ GNN_MODEL_DICT = {
 LAST_ACTIVATION_DICT = {
     "maxcut": nn.Sigmoid(),
     "maxclique": nn.Sigmoid(),
-    "mds": None,
+    "mds": nn.Sigmoid(),
+    "mis": nn.Sigmoid(),
     # "mds": nn.Sigmoid(),
     # "maxclique": None,
 }

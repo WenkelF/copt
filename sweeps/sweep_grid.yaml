@@ -2,67 +2,44 @@ command:
   - python
   - ${program}
   - --cfg
-  - copt_graphgym/configs/mds.yaml
+  - copt_graphgym/configs/maxcut.yaml
   - ${args_no_hyphens}
 
-name: grid_search -- ba graphs
+name: hybrid-v2 -- maxcut -- ba small
 method: grid
 
 metric:
   name: size/valid
-  goal: minimize
+  goal: maximize
 
 parameters:
-  dataset.format:
-    values:
-      # - er
-      # - bp
-
-      # - er_50_02
-      # - er_50_03
-      # - er_50_04
-
-      # - bp_20_00
-      # - bp_20_01
-      # - bp_20_02
-      # - bp_20_03
-
-      # - pc_test
-      # - pc_100_40
-
-      # - ba_small
-      - ba_large
-
-  dataset.label:
-    value: False
+  dataset.name:
+    value: small
 
   gnn.layer_type:
-    values:
-      - hybridconv
-      # - gcnconv
-      # - ginconv
-      # - gatconv
-      # - gatv2conv
+    value: hybridconv-v2
 
   gnn.layers_pre_mp:
     values:
+      # - 2
       - 4
       
   gnn.layers_post_mp:
     values:
       - 1
+      # - 2
 
   gnn.layers_mp:
     values:
       # - 1
-      # - 2
-      # - 4
+      - 2
+      - 4
       # - 6
-      # - 8
+      - 8
       # - 10
       # - 12
       # - 14
-      - 16
+      # - 16
       # - 24
       # - 32
       # - 64
@@ -71,7 +48,7 @@ parameters:
     values:
       # - 32
       # - 64
-      # - 128
+      - 128
       - 256
       # - 512
 
@@ -79,30 +56,18 @@ parameters:
     value: 0.003
 
   optim.max_epoch:
-    value: 50
+    value: 300
 
   seed:
     values:
       - 1
-      - 2
-      - 3
+      # - 2
+      # - 3
 
-  # gnn.hybrid.residual:
+  # gnn.hybrid.combine_fn:
   #   values:
-  #     - True
-  #     - False
-
-  gnn.hybrid.combine_fn:
-    values:
-      - cat
-      - att
-
-  # gnn.hybrid.num_heads:
-  #   values:
-  #     - 1
-  #     - 2
-  #     - 4
-  #     - 8
+  #     - cat
+  #     - att
 
   # model.loss_beta:
   #   values:
@@ -111,7 +76,7 @@ parameters:
   #     - "1.5"
   #     - "2.0"
   #     - "4.0"
-
+      
   train.batch_size:
     value: 64
 

@@ -2,15 +2,15 @@
 out_dir: results
 metric_best: mae
 num_workers: 4
-dim_in: 4
+dim_in: 3
 wandb:
   use: True
   name: sweep
-  project: copt_graphgym
+  project: co_mis
   entity: wenkelf
 dataset:
-  format: er
-  name: v50_02
+  format: rb
+  name: small
   task: graph
   # task_type: classification
   split_mode: cv-kfold-5
@@ -18,7 +18,7 @@ dataset:
   node_encoder: False
   node_encoder_name: RWSE
   set_graph_stats: true
-  graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
+  graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
   label: false
 posenc_LapPE:
@@ -57,8 +57,8 @@ model:
   graph_pooling: mean
 gnn:
   head: copt_inductive_node
-  layers_pre_mp: 1
-  layers_mp: 32
+  layers_pre_mp: 4
+  layers_mp: 16
   layers_post_mp: 1
   dim_inner: 256
   layer_type: gcnconv
