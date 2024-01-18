@@ -258,12 +258,11 @@ def load_dataset_master(format, name, dataset_dir):
             pre_tf_list = []
         else:
             pre_tf_list = [set_maxcut, set_maxclique]
-        tf_list = [set_y]
+        tf_list = [T.Constant(), set_y]
 
         if cfg.dataset.set_graph_stats:
             pre_tf_list.append(compute_graph_stats)
-            tf_list.append(set_graph_stats)
-        
+
         if format.startswith('er'):
             dataset = ERDataset(name, dataset_dir, pre_transform=T.Compose(pre_tf_list))
         elif format.startswith('bp'):
@@ -286,7 +285,6 @@ def load_dataset_master(format, name, dataset_dir):
 
         if cfg.dataset.set_graph_stats:
             pre_tf_list.append(compute_graph_stats)
-            tf_list.append(set_graph_stats)
 
         dataset = SATLIB(dataset_dir, pre_transform=T.Compose(pre_tf_list))
         pre_transform_in_memory(dataset, T.Compose(tf_list), show_progress=True)
@@ -874,18 +872,6 @@ def compute_graph_stats(data):
     if 'triangle_count' in cfg.dataset.graph_stats:
         data.triangle_count = compute_triangle_count(g)[0]
 
-    return data
-
-
-def set_graph_stats(data):
-    stats = list()
-    for stat in cfg.dataset.graph_stats:
-        stats.append(getattr(data, stat))
-
-    if cfg.dataset.append_stats:
-        data.x = torch.cat([data.x, stats], dim=1).float()
-    else:
-        data.x = torch.cat(stats, dim=1).float()
     return data
 
 
