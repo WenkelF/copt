@@ -3,7 +3,6 @@ import logging
 from typing import Any, List, Optional
 
 import torch
-import multiprocessing
 from torch import Tensor
 from torch_geometric.utils import degree
 from torch_geometric.utils import remove_self_loops
@@ -208,16 +207,21 @@ def grouper(iterable, n: int, *, fillvalue: Optional[Any] = None):
 
 
 def parallelize_fn(instances, fn, num_processes):
-    with multiprocessing.Pool(processes=num_processes) as pool:
+    with torch.multiprocessing.get_context('fork').Pool(processes=num_processes) as pool:
         results = pool.map(fn, instances)
     return results
 
 
 def parallelize_fn_tqdm(instances, fn, num_processes):
     results = []
-    with multiprocessing.Pool(processes=num_processes) as pool:
-        with tqdm(total=len(instances)) as pbar:
+    with tqdm(total=len(instances)) as pbar:
+        with torch.multiprocessing.get_context('fork').Pool(processes=num_processes) as pool:
             for result in pool.imap_unordered(fn, instances):
                 results.append(result)
                 pbar.update()
     return results
+
+
+def fun_pbar(fn, input, pbar):
+    pbar.update(1)
+    return fn(input)

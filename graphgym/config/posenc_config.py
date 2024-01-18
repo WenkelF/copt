@@ -15,6 +15,7 @@ def set_cfg_posenc(cfg):
     cfg.posenc_EquivStableLapPE = CN()
     cfg.posenc_GPSE = CN()
     cfg.posenc_GraphLog = CN()
+    cfg.posenc_GraphStats = CN()
 
     # Argument group for each Random Encoding class.
     cfg.randenc_FixedSE = CN()
@@ -36,7 +37,7 @@ def set_cfg_posenc(cfg):
 
     # Common arguments to all PE types.
     for name in ['posenc_LapPE', 'posenc_SignNet', 'posenc_RWSE', 'posenc_GPSE',
-                 'posenc_HKdiagSE', 'posenc_ElstaticPE', 'posenc_GraphLog']:
+                 'posenc_HKdiagSE', 'posenc_ElstaticPE', 'posenc_GraphLog', 'posenc_GraphStats']:
         pecfg = getattr(cfg, name)
 
         # Use extended positional encodings

@@ -1,8 +1,7 @@
 ---
 out_dir: results
 metric_best: mae
-num_workers: 4
-dim_in: 3
+num_workers: 8
 wandb:
   use: True
   name: test
@@ -19,8 +18,9 @@ dataset:
   node_encoder_name: RWSE
   set_graph_stats: true
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
+  label: false
 posenc_LapPE:
-  enable: false
+  enable: true
   eigen:
     laplacian_norm: none
     eigvec_norm: L2
@@ -28,17 +28,25 @@ posenc_LapPE:
     skip_zero_freq: true
     eigvec_abs: true
   model: DeepSet
-  dim_pe: 128
+  dim_pe: 32
   layers: 2
   n_heads: 4  # Only used when `posenc.model: Transformer`
   raw_norm_type: none
 posenc_RWSE:
-  enable: false
+  enable: true
   kernel:
     times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
   model: Linear
-  dim_pe: 128
+  dim_pe: 32
   raw_norm_type: BatchNorm
+posenc_GraphStats:
+  enable: true
+  model: Linear
+  dim_pe: 32
+  raw_norm_type: none
+posenc_NormalRE:
+  enable: true
+  dim_pe: 16
 train:
   mode: copt
   # compile: True
@@ -49,7 +57,7 @@ train:
   ckpt_best: true
 model:
   type: gnn
-  loss_fun: maxcut_loss
+  loss_fun: maxclique_loss
   edge_decoding: dot
   graph_pooling: mean
 gnn:

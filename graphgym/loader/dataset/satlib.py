@@ -1,6 +1,6 @@
 import os
 import os.path as osp
-from multiprocessing import cpu_count
+from torch.multiprocessing import cpu_count
 from pathlib import Path
 import shutil
 from loguru import logger

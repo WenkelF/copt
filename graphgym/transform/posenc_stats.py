@@ -27,6 +27,7 @@ PE_TYPES = [
     "NormalRE",
     "NormalFixedRE",
     "UniformRE",
+    "GraphStats"
 ]
 RANDSE_TYPES = [
     "NormalSE",
@@ -94,6 +95,12 @@ def _combine_encs(
                                    data.eigvals_sn.squeeze(-1)))
             elif pe_type in RANDSE_TYPES:
                 pe = getattr(data, name)
+            elif pe_type == "GraphStats":
+                stats = list()
+                for stat in cfg.dataset.graph_stats:
+                    stats.append(getattr(data, stat))
+
+                pe = torch.cat(stats, dim=1).float()
             else:
                 pe = getattr(data, f"pestat_{pe_type}")
             pe_list.append(pe)

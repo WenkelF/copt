@@ -220,7 +220,7 @@ def load_dataset_master(format, name, dataset_dir):
     if format.startswith('PyG-'):
         tf_list = []
         if cfg.dataset.set_graph_stats:
-            tf_list.append(set_graph_stats)
+            tf_list.append(compute_graph_stats)
         if cfg.train.task == 'maxcut':
             tf_list.append(set_maxcut)
         elif cfg.train.task == 'maxclique':
@@ -258,21 +258,22 @@ def load_dataset_master(format, name, dataset_dir):
             pre_tf_list = []
         else:
             pre_tf_list = [set_maxcut, set_maxclique]
-        tf_list = [set_y]
-        
-        if format.startswith('er'):
-            dataset = ERDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list))
-        elif format.startswith('bp'):
-            dataset = BPDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list))
-        elif format.startswith('rb'):
-            dataset = RBDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list))
-        elif format.startswith('pc'):
-            dataset = PCDataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list))
-        elif format.startswith('ba'):
-            dataset = BADataset(name, osp.join(dataset_dir, format), pre_transform=T.Compose(pre_tf_list))
+        tf_list = [T.Constant(), set_y]
 
         if cfg.dataset.set_graph_stats:
-            tf_list.append(set_graph_stats)
+            pre_tf_list.append(compute_graph_stats)
+
+        if format.startswith('er'):
+            dataset = ERDataset(name, dataset_dir, pre_transform=T.Compose(pre_tf_list))
+        elif format.startswith('bp'):
+            dataset = BPDataset(name, dataset_dir, pre_transform=T.Compose(pre_tf_list))
+        elif format.startswith('rb'):
+            dataset = RBDataset(name, dataset_dir, pre_transform=T.Compose(pre_tf_list))
+        elif format.startswith('pc'):
+            dataset = PCDataset(name, dataset_dir, pre_transform=T.Compose(pre_tf_list))
+        elif format.startswith('ba'):
+            dataset = BADataset(name, dataset_dir, pre_transform=T.Compose(pre_tf_list))
+
         pre_transform_in_memory(dataset, T.Compose(tf_list), show_progress=True)
 
     elif format == 'SATLIB':
@@ -281,6 +282,9 @@ def load_dataset_master(format, name, dataset_dir):
         else:
             pre_tf_list = [set_maxcut, set_maxclique]
         tf_list = [set_y]
+
+        if cfg.dataset.set_graph_stats:
+            pre_tf_list.append(compute_graph_stats)
 
         dataset = SATLIB(dataset_dir, pre_transform=T.Compose(pre_tf_list))
         pre_transform_in_memory(dataset, T.Compose(tf_list), show_progress=True)
@@ -852,25 +856,24 @@ def set_virtual_node(dataset):
     dataset.transform_list.append(VirtualNodePatchSingleton())
 
 
-def set_graph_stats(data):
+def compute_graph_stats(data):
     g = to_networkx(data)
     if isinstance(g, nx.DiGraph):
         g = g.to_undirected()
     # Derive adjacency matrix
     adj = torch.from_numpy(nx.to_numpy_array(g))
-    stats = list()
 
     if 'degree' in cfg.dataset.graph_stats:
-        stats.append(compute_degrees(adj, log_transform=True)[0])
+        data.degree = compute_degrees(adj, log_transform=True)[0]
     if 'eccentricity' in cfg.dataset.graph_stats:
-        stats.append(compute_eccentricity(g)[0])
+        data.eccentricity = compute_eccentricity(g)[0]
     if 'cluster_coefficient' in cfg.dataset.graph_stats:
-        stats.append(compute_cluster_coefficient(g)[0])
+        data.cluster_coefficient = compute_cluster_coefficient(g)[0]
     if 'triangle_count' in cfg.dataset.graph_stats:
-        stats.append(compute_triangle_count(g)[0])
+        data.triangle_count = compute_triangle_count(g)[0]
 
-    data.x = torch.cat(stats, dim=1).float()
     return data
+
 
 def compute_maxcut(g):
     adj = torch.from_numpy(nx.to_numpy_array(g))

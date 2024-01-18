@@ -1,22 +1,21 @@
 ---
 out_dir: results
 metric_best: mae
-num_workers: 4
+num_workers: 8
 wandb:
   use: True
-  name: sweep
-  project: co_mis
-  entity: wenkelf
+  name: test
+  project: copt-pyg
+  entity: semo
 dataset:
-  format: rb
-  name: small
+  format: SATLIB
   task: graph
   # task_type: classification
   split_mode: cv-kfold-5
   split_dir: splits
   node_encoder: False
   node_encoder_name: RWSE
-  set_graph_stats: true
+  set_graph_stats: false
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
   label: false
@@ -51,35 +50,33 @@ posenc_NormalRE:
 train:
   mode: copt
   # compile: True
-  task: mis
+  task: maxclique
   batch_size: 256
   eval_period: 1
   ckpt_period: 100
   ckpt_best: true
 model:
   type: gnn
-  loss_fun: mis_loss
-  loss_beta: 2.0
+  loss_fun: maxclique_loss
   edge_decoding: dot
   graph_pooling: mean
 gnn:
   head: copt_inductive_node
-  layers_pre_mp: 4
-  layers_mp: 16
+  layers_pre_mp: 1
+  layers_mp: 12
   layers_post_mp: 1
   dim_inner: 256
-  layer_type: gcnconv
+  layer_type: hybridconv
   stage_type: skipsum
   batchnorm: true
   act: relu
   last_act: sigmoid
-  last_norm: null
   dropout: 0.3
   agg: mean
   normalize_adj: false
 optim:
   base_lr: 0.003
-  max_epoch: 200
+  max_epoch: 300
   optimizer: adamW
   weight_decay: 1e-5
   scheduler: cosine_with_warmup

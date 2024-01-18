@@ -31,10 +31,13 @@ def dataset_cfg(cfg):
     cfg.dataset.umg_random_seed = 0  # for random indexing
 
     cfg.dataset.set_graph_stats = False
+    cfg.dataset.append_stats = False
     cfg.dataset.graph_stats = ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
 
     cfg.dataset.multiprocessing = True
     cfg.dataset.label = False
+
+    cfg.train.batch_size_val = 256
 
 
 @register_config('satlib_cfg')
@@ -109,9 +112,9 @@ def bp_cfg(cfg):
 
 @register_config('bp_20_00_cfg')
 def bp_20_00_cfg(cfg):
-    cfg.bp.v20_01 = CN()
-    cfg.bp.v20_01.mean = 20
-    cfg.bp.v20_01.p_edge_er = 0.0
+    cfg.bp.v20_00 = CN()
+    cfg.bp.v20_00.mean = 20
+    cfg.bp.v20_00.p_edge_er = 0.0
 
 
 @register_config('bp_20_01_cfg')

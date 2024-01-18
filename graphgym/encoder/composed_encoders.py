@@ -16,6 +16,7 @@ from graphgym.encoder.random_encoder import BernoulliRENodeEncoder, \
 from graphgym.encoder.signnet_pos_encoder import SignNetNodeEncoder
 from graphgym.encoder.type_dict_encoder import TypeDictNodeEncoder
 from graphgym.encoder.voc_superpixels_encoder import VOCNodeEncoder
+from graphgym.encoder.graph_stats_encoder import GraphStatsEncoder
 
 
 def concat_node_encoders(encoder_classes, pe_enc_names):
@@ -121,7 +122,8 @@ pe_encs = {'LapPE': LapPENodeEncoder,
            "BernoulliRE": BernoulliRENodeEncoder,
            "NormalRE": NormalRENodeEncoder,
            "NormalFixedRE": NormalFixedRENodeEncoder,
-           "UniformRE": UniformRENodeEncoder}
+           "UniformRE": UniformRENodeEncoder,
+           "GraphStats": GraphStatsEncoder}
 
 # Concat dataset-specific and PE encoders.
 for ds_enc_name, ds_enc_cls in ds_encs.items():

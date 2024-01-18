@@ -267,6 +267,11 @@ def plantedclique_acc_pyg(data):
 
 
 def mds_size_pyg(data):
+
+    eval = False
+    if not eval:
+        return 0.
+    
     data_list = data.to_data_list()
 
     ds_list = []
@@ -283,8 +288,8 @@ def mds_size_pyg(data):
             idx = torch.argmax(p)
             ds[idx] = True
             p[idx] = - torch.inf
-            if time.time() - t0 > 30:
-                break
+            # if time.time() - t0 > 30:
+            #     break
 
         if is_ds(ds, row, col):
             ds_list.append(ds.sum())
@@ -328,6 +333,11 @@ def is_ds(ds, row, col):
 
 
 def mis_size_pyg(data):
+
+    eval = False
+    if not eval:
+        return 0.
+
     data_list = data.to_data_list()
 
     iset_list = []

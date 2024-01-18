@@ -53,6 +53,7 @@ def train(model: GraphGymModule, datamodule, logger: bool = True,
         max_epochs=cfg.optim.max_epoch,
         accelerator=cfg.accelerator,
         devices='auto' if not torch.cuda.is_available() else cfg.devices,
+        check_val_every_n_epoch=cfg.train.val_period,
     )
 
     if cfg.wandb.use:
