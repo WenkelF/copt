@@ -26,7 +26,7 @@ from tqdm import trange
 URL = "https://github.com/DeepGraphLearning/GraphLoG/raw/main/models/graphlog.pth"
 
 GRAPHLOG_LAYERS = 5
-GRPPHLOG_DIM = 300
+GRAPHLOG_DIM = 300
 GRAPHLOG_PRECOMP_BATCHSIZE = 128
 
 NUM_ATOM_TYPE = 120  # including the extra mask tokens
@@ -48,7 +48,7 @@ def precompute_graphlog(cfg, dataset):
             f.write(r.content)
 
     # Load pretrained GraphLog model
-    model = GraphLog(GRAPHLOG_LAYERS, GRPPHLOG_DIM)
+    model = GraphLog(GRAPHLOG_LAYERS, GRAPHLOG_DIM)
     state_dict = torch.load(path, map_location="cpu")
     model.load_state_dict(state_dict)
     model.to(cfg.accelerator)
@@ -206,7 +206,7 @@ class GraphLogNodeEncoder(nn.Module):
 
         pecfg = cfg.posenc_GraphLog
         norm_type = pecfg.raw_norm_type.lower()  # Raw PE normalization layer type
-        dim = GRPPHLOG_DIM
+        dim = GRAPHLOG_DIM
         dim_pe = pecfg.dim_pe
         model_type = pecfg.model.lower()  # Encoder NN model type for PEs
         n_layers = pecfg.layers  # Num. layers in PE encoder model
