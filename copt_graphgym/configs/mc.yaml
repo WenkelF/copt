@@ -2,10 +2,10 @@
 out_dir: results
 metric_best: mae
 num_workers: 4
-dim_in: 4
+dim_in: 3
 wandb:
   use: True
-  name: test
+  name: sweep
   project: co_mc
   entity: wenkelf
 dataset:
@@ -18,7 +18,7 @@ dataset:
   node_encoder: False
   node_encoder_name: RWSE
   set_graph_stats: true
-  graph_stats: [ 'degree', 'eccentricity', 'cluster_coefficient', 'triangle_count' ]
+  graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
   label: false
 posenc_LapPE:
@@ -64,14 +64,14 @@ gnn:
   stage_type: skipsum
   batchnorm: true
   act: relu
-  last_act: null
-  last_norm: minmax
+  last_act: sigmoid # null
+  last_norm: null #minmax
   dropout: 0.3
   agg: mean
   normalize_adj: false
 optim:
-  base_lr: 0.003
-  max_epoch: 300
+  base_lr: 0.001
+  max_epoch: 20
   optimizer: adamW
   weight_decay: 1e-5
   scheduler: cosine_with_warmup

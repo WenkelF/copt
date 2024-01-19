@@ -2,10 +2,10 @@ command:
   - python
   - ${program}
   - --cfg
-  - copt_graphgym/configs/maxcut.yaml
+  - copt_graphgym/configs/mc.yaml
   - ${args_no_hyphens}
 
-name: hybrid-v2 -- maxcut -- ba small
+name: hybrid-v2 -- maxclique -- rb small
 method: grid
 
 metric:
@@ -15,6 +15,9 @@ metric:
 parameters:
   dataset.name:
     value: small
+
+  # dataset.graph_stats:
+  #   values: [['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count'], []]
 
   gnn.layer_type:
     value: hybridconv-v2
@@ -32,7 +35,7 @@ parameters:
   gnn.layers_mp:
     values:
       # - 1
-      - 2
+      # - 2
       - 4
       # - 6
       - 8
@@ -47,22 +50,22 @@ parameters:
   gnn.dim_inner:
     values:
       # - 32
-      # - 64
+      - 64
       - 128
       - 256
       # - 512
 
   optim.base_lr:
-    value: 0.003
-
-  optim.max_epoch:
-    value: 300
+    values:
+      - 0.0001
+      # - 0.0003
+      # - 0.001
 
   seed:
     values:
       - 1
-      # - 2
-      # - 3
+      - 2
+      - 3
 
   # gnn.hybrid.combine_fn:
   #   values:
