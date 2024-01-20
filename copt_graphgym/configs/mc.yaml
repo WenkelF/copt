@@ -4,8 +4,8 @@ metric_best: mae
 num_workers: 4
 wandb:
   use: True
-  name: test
-  project: co_mc
+  name: mc
+  project: co_expts
   entity: wenkelf
 dataset:
   format: rb
@@ -15,9 +15,9 @@ dataset:
   split_mode: cv-kfold-5
   split_dir: splits
   node_encoder: False
-  node_encoder_name: RWSE
+  node_encoder_name: GraphStats
   set_graph_stats: true
-  graph_stats: [ 'degree', 'eccentricity', 'cluster_coefficient', 'triangle_count' ]
+  graph_stats: ['degree', 'cluster_coefficient', 'triangle_count' ]
   multiprocessing: true
   label: false
 posenc_LapPE:
@@ -77,8 +77,8 @@ gnn:
   agg: mean
   normalize_adj: false
 optim:
-  base_lr: 0.003
-  max_epoch: 300
+  base_lr: 0.0001
+  max_epoch: 30
   optimizer: adamW
   weight_decay: 1e-5
   scheduler: cosine_with_warmup

@@ -13,7 +13,7 @@ def loss_param_cfg(cfg):
     cfg.mds_loss.beta = 1.0
 
     cfg.mis_loss = CN()
-    cfg.mis_loss.beta = 1.0
-    cfg.mis_loss.k = 2
+    cfg.mis_loss.beta = 0.1
+    # cfg.mis_loss.k = 2
 
     cfg.plantedclique_loss = CN()

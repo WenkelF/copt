@@ -268,9 +268,9 @@ def plantedclique_acc_pyg(data):
 
 def mds_size_pyg(data):
 
-    eval = False
-    if not eval:
-        return 0.
+    # eval = False
+    # if not eval:
+    #     return 0.
     
     data_list = data.to_data_list()
 
@@ -334,9 +334,9 @@ def is_ds(ds, row, col):
 
 def mis_size_pyg(data):
 
-    eval = False
-    if not eval:
-        return 0.
+    # eval = False
+    # if not eval:
+    #     return 0.
 
     data_list = data.to_data_list()
 

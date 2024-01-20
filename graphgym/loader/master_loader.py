@@ -919,7 +919,7 @@ def set_plantedclique(data):
 
 def set_y(data):
     if not cfg.dataset.label:
-        data.y = None
+        data.y = torch.ones_like(data.cut_binary) # quick fix; TBD: clean up
     elif cfg.train.task == 'maxcut':
         data.y = data.cut_binary
     elif cfg.train.task == 'maxclique':

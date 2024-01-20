@@ -78,6 +78,7 @@ class HybridConv_v2(MessagePassing):
             activation_att2: str = None,
             activation: str = 'relu',
             depth_mlp: int = 1,
+            skip: bool = False,
             add_self_loops: bool = True,
             bias: bool = True,
             **kwargs
@@ -91,6 +92,7 @@ class HybridConv_v2(MessagePassing):
         self.radius_list = list(set([agg for channel in channel_list for agg in channel]))
         self.radius_list.sort()
         self.num_heads = num_heads
+        self.skip = skip
         self.add_self_loops = add_self_loops
         self.activation_att1 = ACTIVATION_DICT[activation_att1]
         self.activation_att2 = ACTIVATION_DICT[activation_att2]
@@ -106,7 +108,10 @@ class HybridConv_v2(MessagePassing):
         self.att_channel_low = nn.Parameter(torch.empty(num_heads, output_dim))
         self.att_channel_band = nn.Parameter(torch.empty(num_heads, output_dim))
         if depth_mlp > 0:
-            self.mlp_out = MLP([2 * output_dim] + depth_mlp * [output_dim], bias=bias, activation=activation, norm=None)
+            m = 2
+            if skip:
+                m += 1
+            self.mlp_out = MLP([m * output_dim] + depth_mlp * [output_dim], bias=bias, activation=activation, norm=None)
         else:
             self.mlp_out = None
 
@@ -158,6 +163,9 @@ class HybridConv_v2(MessagePassing):
                 x_channel_dict[str(channel)] = x_agg_dict[channel[0]] - x_agg_dict[channel[1]]
 
         x = self.channel_attention(x_channel_dict)
+
+        if self.skip:
+            x = torch.cat([x_agg_dict[0], x], dim=-1)
 
         if self.mlp_out is not None:
             x = self.mlp_out(x)
@@ -224,6 +232,7 @@ class HybridConvLayer(nn.Module):
                                 activation_att2=cfg.gnn.hybrid_v2.activation_att2,
                                 activation=cfg.gnn.hybrid_v2.activation,
                                 depth_mlp=cfg.gnn.hybrid_v2.depth_mlp,
+                                skip=cfg.gnn.hybrid_v2.skip,
                                 add_self_loops=cfg.gnn.hybrid.add_self_loops,
                                 bias=layer_config.has_bias,
                                 **kwargs)

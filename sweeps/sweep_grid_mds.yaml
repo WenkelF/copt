@@ -2,10 +2,10 @@ command:
   - python
   - ${program}
   - --cfg
-  - copt_graphgym/configs/maxcut.yaml
+  - copt_graphgym/configs/mds.yaml
   - ${args_no_hyphens}
 
-name: hybrid-v2 -- maxcut -- ba small
+name: hybrid-v2 -- mds -- ba small
 method: grid
 
 metric:
@@ -16,11 +16,22 @@ parameters:
   dataset.name:
     value: small
 
+  dataset.node_encoder_name:
+    values:
+      - GraphStats
+      # - RWSE
+      # - LapPE
+      # - NormalRE
+      # - UniformRE
+      # - RWSE+GraphStats
+      # - LapPE+GraphStats
+
   gnn.layer_type:
     value: hybridconv-v2
 
   gnn.layers_pre_mp:
     values:
+      # - 1
       # - 2
       - 4
       
@@ -31,11 +42,11 @@ parameters:
 
   gnn.layers_mp:
     values:
-      # - 1
+      - 1
       - 2
-      - 4
+      # - 4
       # - 6
-      - 8
+      # - 8
       # - 10
       # - 12
       # - 14
@@ -44,40 +55,45 @@ parameters:
       # - 32
       # - 64
 
+  gnn.hybrid_v2.skip:
+    values:
+      - true
+      - false
+
   gnn.dim_inner:
     values:
       # - 32
       # - 64
       - 128
-      - 256
+      # - 256
       # - 512
 
   optim.base_lr:
-    value: 0.003
-
-  optim.max_epoch:
-    value: 300
-
+    values:
+      # - 0.00001
+      # - 0.00003
+      - 0.0001
+      - 0.0003
+      - 0.001
+      - 0.003
+  
   seed:
     values:
       - 1
-      # - 2
+      - 2
       # - 3
 
-  # gnn.hybrid.combine_fn:
-  #   values:
-  #     - cat
-  #     - att
-
-  # model.loss_beta:
-  #   values:
-  #     - "0.5"
-  #     - "1.0"
-  #     - "1.5"
-  #     - "2.0"
-  #     - "4.0"
+  model.loss_beta:
+    values:
+      - "0.1"
+      - "0.2"
+      - "0.5"
+      - "1.0"
+      - "1.5"
+      - "2.0"
+      - "4.0"
       
   train.batch_size:
-    value: 64
+    value: 128
 
 program: main_graphgym.py

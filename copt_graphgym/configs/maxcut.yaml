@@ -4,8 +4,8 @@ metric_best: mae
 num_workers: 4
 wandb:
   use: True
-  name: sweep
-  project: co_mcut
+  name: maxcut
+  project: co_expts
   entity: wenkelf
 dataset:
   format: ba
@@ -15,10 +15,11 @@ dataset:
   split_mode: cv-kfold-5
   split_dir: splits
   node_encoder: true
-  node_encoder_name: RWSE+Degree
+  node_encoder_name: GraphStats
   set_graph_stats: true
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
+  label: false
 posenc_LapPE:
   enable: true
   eigen:

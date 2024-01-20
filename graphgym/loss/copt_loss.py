@@ -208,23 +208,39 @@ def mds_loss_pyg(data, beta=1.0):
     return loss / batch_size
 
 
+# @register_loss("mis_loss")
+# def mis_loss_pyg(data, beta=1.0, k=2, eps=1e-1):
+#     batch_size = data.batch.max() + 1.0
+
+#     edge_index = remove_self_loops(data.edge_index)[0]
+#     row, col = edge_index[0], edge_index[1]
+#     degree = torch.exp(data.degree)
+
+#     l1 = - torch.sum(data.x ** 2)
+#     l2 = + torch.sum((data.x[row] * data.x[col]) ** 2)
+
+#     # l1 = - torch.sum(torch.log(1 - data.x) * degree)
+#     # l2 = + torch.log((data.x[row] * data.x[col]) ** 1).sum()
+
+#     # l1 = - data.x.sum()
+#     # l2 = + ((data.x[row] * data.x[col]) ** k).sum()
+
+#     loss = l1 + beta * l2
+
+#     return loss #/ batch_size
+
+
 @register_loss("mis_loss")
-def mis_loss_pyg(data, beta=1.0, k=2, eps=1e-1):
-    batch_size = data.batch.max() + 1.0
+def mis_loss_pyg(batch, beta=0.1):
 
-    edge_index = remove_self_loops(data.edge_index)[0]
-    row, col = edge_index[0], edge_index[1]
-    degree = torch.exp(data.degree)
+    data_list = batch.to_data_list()
 
-    l1 = - torch.sum(data.x ** 2)
-    l2 = + torch.sum((data.x[row] * data.x[col]) ** 2)
+    loss = 0.0
+    for data in data_list:
+        src, dst = data.edge_index[0], data.edge_index[1]
 
-    # l1 = - torch.sum(torch.log(1 - data.x) * degree)
-    # l2 = + torch.log((data.x[row] * data.x[col]) ** 1).sum()
+        loss1 = torch.sum(data.x[src] * data.x[dst])
+        loss2 = data.x.sum() ** 2 - loss1 - torch.sum(data.x ** 2)
+        loss += (- loss2 + beta * loss1) * data.num_nodes
 
-    # l1 = - data.x.sum()
-    # l2 = + ((data.x[row] * data.x[col]) ** k).sum()
-
-    loss = l1 + beta * l2
-
-    return loss #/ batch_size
+    return loss / batch.size(0)
