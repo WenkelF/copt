@@ -34,7 +34,7 @@ posenc_LapPE:
   n_heads: 4  # Only used when `posenc.model: Transformer`
   raw_norm_type: none
 posenc_RWSE:
-  enable: true
+  enable: false
   kernel:
     times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
   model: Linear
@@ -66,7 +66,7 @@ gnn:
   layers_pre_mp: 1
   layers_mp: 12
   layers_post_mp: 1
-  dim_inner: 256
+  dim_inner: 64
   layer_type: hybridconv
   stage_type: skipsum
   batchnorm: true
