@@ -1,7 +1,7 @@
 ---
 out_dir: results
 metric_best: mae
-num_workers: 8
+num_workers: 4
 wandb:
   use: True
   name: test
@@ -64,7 +64,7 @@ model:
   graph_pooling: mean
 gnn:
   head: copt_inductive_node
-  layers_pre_mp: 1
+  layers_pre_mp: 4
   layers_mp: 12
   layers_post_mp: 1
   dim_inner: 256
@@ -78,7 +78,7 @@ gnn:
   normalize_adj: false
 optim:
   base_lr: 0.003
-  max_epoch: 300
+  max_epoch: 400
   optimizer: adamW
   weight_decay: 1e-5
   scheduler: cosine_with_warmup
