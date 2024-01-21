@@ -1,7 +1,7 @@
 ---
 out_dir: results
 metric_best: mae
-num_workers: 8
+num_workers: 4
 wandb:
   use: True
   name: test
@@ -9,18 +9,19 @@ wandb:
   entity: semo
 dataset:
   format: SATLIB
+  name: default
   task: graph
   # task_type: classification
   split_mode: cv-kfold-5
   split_dir: splits
-  node_encoder: False
+  node_encoder: false
   node_encoder_name: RWSE
   set_graph_stats: false
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
   label: false
 posenc_LapPE:
-  enable: true
+  enable: false
   eigen:
     laplacian_norm: none
     eigvec_norm: L2
@@ -40,7 +41,7 @@ posenc_RWSE:
   dim_pe: 32
   raw_norm_type: BatchNorm
 posenc_GraphStats:
-  enable: true
+  enable: false
   model: Linear
   dim_pe: 32
   raw_norm_type: none

@@ -39,6 +39,7 @@ class SATLIB(InMemoryDataset):
 
     def __init__(self, root, transform=None, pre_transform=None,
                  pre_filter=None):
+        self.name = 'default'
         self.multiprocessing = cfg.dataset.multiprocessing
         if self.multiprocessing:
             self.num_workers = cfg.num_workers if cfg.num_workers > 0 else cpu_count()
