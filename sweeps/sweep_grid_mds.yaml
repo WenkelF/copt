@@ -19,9 +19,9 @@ parameters:
   dataset.node_encoder_name:
     values:
       - GraphStats
-      # - RWSE
-      # - LapPE
-      # - NormalRE
+      - RWSE
+      - LapPE
+      - NormalRE
       # - UniformRE
       # - RWSE+GraphStats
       # - LapPE+GraphStats
@@ -42,58 +42,60 @@ parameters:
 
   gnn.layers_mp:
     values:
-      - 1
-      - 2
+      # - 1
+      # - 2
       # - 4
       # - 6
       # - 8
-      # - 10
-      # - 12
+      - 10
+      - 11
+      - 12
       # - 14
       # - 16
       # - 24
       # - 32
       # - 64
 
-  gnn.hybrid_v2.skip:
-    values:
-      - true
-      - false
+  # gnn.hybrid_v2.skip:
+  #   values:
+  #     - true
+  #     - false
 
   gnn.dim_inner:
     values:
       # - 32
       # - 64
       - 128
-      # - 256
+      - 256
       # - 512
 
   optim.base_lr:
     values:
       # - 0.00001
       # - 0.00003
-      - 0.0001
-      - 0.0003
-      - 0.001
+      # - 0.0001
+      # - 0.0003
+      # - 0.001
       - 0.003
   
   seed:
     values:
       - 1
       - 2
-      # - 3
+      - 3
 
-  model.loss_beta:
+  mds_loss.beta:
     values:
-      - "0.1"
-      - "0.2"
-      - "0.5"
       - "1.0"
-      - "1.5"
-      - "2.0"
-      - "4.0"
+      # - "3.0"
+      # - "10.0"
+      # - "30.0"
+      # - "100.0"
       
   train.batch_size:
-    value: 128
+    value: 256
+
+  optim.max_epoch:
+    value: 200
 
 program: main_graphgym.py
