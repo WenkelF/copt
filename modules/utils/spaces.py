@@ -64,8 +64,8 @@ LOSS_FUNCTION_DICT = {
 }
     
 EVAL_FUNCTION_DICT = {
-    "maxcut": {"size": maxcut_size_pyg}, #, "acc": maxcut_acc_pyg, "size": maxcut_size_pyg},
-    "maxclique": {"size": maxclique_size_pyg},
+    "maxcut": {"size": maxcut_size_pyg}, # "acc": maxcut_acc_pyg},
+    "maxclique": {"size": maxclique_size_pyg}, # 'ratio': maxclique_ratio_pyg},
     "mds": {"size": mds_size_pyg},
     "mis": {"size": mis_size_pyg},
     "plantedclique": {"acc": plantedclique_acc_pyg},

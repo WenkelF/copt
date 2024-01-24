@@ -2,6 +2,7 @@
 out_dir: results
 metric_best: mae
 num_workers: 4
+dim_out: 1
 wandb:
   use: True
   name: test
