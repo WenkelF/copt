@@ -54,6 +54,7 @@ def extended_cfg(cfg):
     # What device to use for TorchMetrics. "default" means use the same value
     # as cfg.accelerator.
     cfg.val.accelerator = "default"
+    cfg.val.drop_last = False
 
     # Number of node and graph targets, initialized with null value of -1.
     # Used by hybrid prediction head to set the number of node and graph heads.
