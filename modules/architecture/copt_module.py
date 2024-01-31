@@ -1,3 +1,4 @@
+import logging
 import time
 from functools import partial
 from typing import Any, Dict, Tuple
@@ -107,7 +108,11 @@ def create_model(to_device=True, dim_in=None, dim_out=None) -> GraphGymModule:
     if 'classification' in cfg.dataset.task_type and dim_out == 2:
         dim_out = 1
 
-    model = COPTModule(dim_in, dim_out, cfg)
+    if cfg.pretrained.dir:
+        logging.info(f'Loading pretrained model from {cfg.pretrained.dir}')
+        model = COPTModule.load_from_checkpoint(cfg.pretrained.dir, dim_in=dim_in, dim_out=dim_out, cfg=cfg)
+    else:
+        model = COPTModule(dim_in, dim_out, cfg)
     if to_device:
         model.to(torch.device(cfg.accelerator))
     return model

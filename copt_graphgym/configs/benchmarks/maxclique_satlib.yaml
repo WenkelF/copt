@@ -1,7 +1,8 @@
 ---
 out_dir: results
 metric_best: mae
-num_workers: 8
+num_workers: 4
+dim_out: 1
 wandb:
   use: True
   name: test
@@ -9,18 +10,19 @@ wandb:
   entity: semo
 dataset:
   format: SATLIB
+  name: default
   task: graph
   # task_type: classification
   split_mode: cv-kfold-5
   split_dir: splits
-  node_encoder: False
+  node_encoder: false
   node_encoder_name: RWSE
   set_graph_stats: false
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
   label: false
 posenc_LapPE:
-  enable: true
+  enable: false
   eigen:
     laplacian_norm: none
     eigvec_norm: L2
@@ -33,14 +35,14 @@ posenc_LapPE:
   n_heads: 4  # Only used when `posenc.model: Transformer`
   raw_norm_type: none
 posenc_RWSE:
-  enable: true
+  enable: false
   kernel:
     times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
   model: Linear
   dim_pe: 32
   raw_norm_type: BatchNorm
 posenc_GraphStats:
-  enable: true
+  enable: false
   model: Linear
   dim_pe: 32
   raw_norm_type: none
@@ -65,7 +67,7 @@ gnn:
   layers_pre_mp: 1
   layers_mp: 12
   layers_post_mp: 1
-  dim_inner: 256
+  dim_inner: 64
   layer_type: hybridconv
   stage_type: skipsum
   batchnorm: true

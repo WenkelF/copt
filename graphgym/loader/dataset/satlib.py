@@ -16,7 +16,7 @@ import numpy as np
 import networkx as nx
 from pysat.formula import CNF
 
-from graphgym.utils import parallelize_fn_tqdm
+from graphgym.utils import parallelize_fn_tqdm, fun_pbar
 
 
 class SATLIB(InMemoryDataset):
@@ -39,6 +39,7 @@ class SATLIB(InMemoryDataset):
 
     def __init__(self, root, transform=None, pre_transform=None,
                  pre_filter=None):
+        self.name = 'default'
         self.multiprocessing = cfg.dataset.multiprocessing
         if self.multiprocessing:
             self.num_workers = cfg.num_workers if cfg.num_workers > 0 else cpu_count()
@@ -119,7 +120,6 @@ class SATLIB(InMemoryDataset):
         return g_pyg
 
     def process(self):
-
         logger.info("Generating graphs...")
         path_list = list(Path(self.raw_dir).rglob("*.cnf"))
         if self.multiprocessing:
@@ -128,8 +128,7 @@ class SATLIB(InMemoryDataset):
         else:
             pbar = tqdm(total=len(list(path_list)))
             pbar.set_description(f'Graph generation')
-            data_list = [self.build_graph(f) and pbar.update(1) for f in Path(self.raw_dir).rglob("*.cnf")]
-
+            data_list = [fun_pbar(self.build_graph, f, pbar) for f in Path(self.raw_dir).rglob("*.cnf")]
 
         logger.info("pre transform data...")
         if self.pre_transform is not None:
@@ -139,7 +138,7 @@ class SATLIB(InMemoryDataset):
             else:
                 pbar_pre = tqdm(total=len(data_list))
                 pbar_pre.set_description(f'Graph pre-transform')
-                data_list = [self.pre_transform(data) and pbar_pre.update(1) for data in data_list]
+                data_list = [fun_pbar(self.pre_transform, data, pbar_pre) for data in data_list]
 
         logger.info("Saving data...")
         data, slices = self.collate(data_list)

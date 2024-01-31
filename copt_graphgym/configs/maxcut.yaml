@@ -2,6 +2,7 @@
 out_dir: results
 metric_best: mae
 num_workers: 4
+dim_out: 1
 wandb:
   use: True
   name: maxcut
@@ -68,7 +69,7 @@ gnn:
   layers_post_mp: 1
   dim_inner: 256
   layer_type: gcnconv
-  stage_type: skipsum   # other options: skipsum, skipconcat, none?
+  stage_type: skipsum   # options: skipsum, skipconcat, stack (none)
   batchnorm: true
   act: relu
   last_act: sigmoid

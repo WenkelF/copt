@@ -12,12 +12,12 @@ from torch_geometric.loader import (
 from torch_geometric.graphgym.loader import create_dataset
 
 
-def get_loader(dataset, sampler, batch_size, node_split_name, shuffle=True):
+def get_loader(dataset, sampler, batch_size, node_split_name, shuffle=True, **kwargs):
     if sampler == "full_batch" or len(dataset) > 1:
         loader_train = DataLoader(dataset, batch_size=batch_size,
                                   shuffle=shuffle, num_workers=cfg.num_workers,
                                   pin_memory=True,
-                                  persistent_workers=cfg.num_workers > 0)
+                                  persistent_workers=cfg.num_workers > 0, **kwargs)
     elif sampler == "neighbor":
         assert node_split_name, "NeighborLoader is only valid for node tasks"
         loader_train = NeighborLoader(
@@ -101,12 +101,12 @@ def create_loader():
             id = dataset.data[split_names[i]]
             loaders.append(
                 get_loader(dataset[id], cfg.val.sampler, cfg.train.batch_size,
-                           node_split_name=None, shuffle=False))
+                           node_split_name=None, shuffle=False, drop_last=cfg.val.drop_last))
             delattr(dataset.data, split_names[i])
         else:
             split_names = ['val', 'test']
             loaders.append(
                 get_loader(dataset, cfg.val.sampler, cfg.train.batch_size,
-                           node_split_name=split_names[i], shuffle=False))
+                           node_split_name=split_names[i], shuffle=False, drop_last=cfg.val.drop_last))
 
     return loaders

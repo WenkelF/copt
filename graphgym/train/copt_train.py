@@ -18,6 +18,7 @@ from modules.data.datamodule_graphgym import GraphGymDataModule, train
 
 
 @register_train('copt')
+@register_train('copt_test')
 def train_copt(cfg, loaders, model):
     if cfg.wandb.use:
         try:

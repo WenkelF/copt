@@ -281,7 +281,7 @@ def load_dataset_master(format, name, dataset_dir):
             pre_tf_list = []
         else:
             pre_tf_list = [set_maxcut, set_maxclique]
-        tf_list = [set_y]
+        tf_list = [T.Constant(), set_y]
 
         if cfg.dataset.set_graph_stats:
             pre_tf_list.append(compute_graph_stats)

@@ -1,3 +1,4 @@
+import logging
 import warnings
 from typing import Optional
 
@@ -59,5 +60,8 @@ def train(model: GraphGymModule, datamodule, logger: bool = True,
     if cfg.wandb.use:
         trainer.logger = WandbLogger(**cfg.wandb)
 
-    trainer.fit(model, datamodule=datamodule)
+    if not cfg.train.mode == 'copt_test':
+        trainer.fit(model, datamodule=datamodule)
+    elif not cfg.pretrained.dir:
+        logging.warning(f'You are running inference on a model that has not been trained. Either train a model first, or provide a checkpoint using "cfg.pretrained.dir".')
     trainer.test(model, datamodule=datamodule)
