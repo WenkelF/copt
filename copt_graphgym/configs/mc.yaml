@@ -21,7 +21,7 @@ dataset:
   multiprocessing: true
   label: false
 posenc_LapPE:
-  enable: true
+  enable: false
   eigen:
     laplacian_norm: none
     eigvec_norm: L2
@@ -34,7 +34,7 @@ posenc_LapPE:
   n_heads: 4  # Only used when `posenc.model: Transformer`
   raw_norm_type: none
 posenc_RWSE:
-  enable: true
+  enable: false
   kernel:
     times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
   model: Linear
@@ -53,7 +53,7 @@ train:
   # compile: True
   task: maxclique
   batch_size: 256
-  eval_period: 1
+  val_period: 1
   ckpt_period: 100
   ckpt_best: true
 model:
@@ -64,9 +64,9 @@ model:
 gnn:
   head: copt_inductive_node
   layers_pre_mp: 4
-  layers_mp: 16
+  layers_mp: 8
   layers_post_mp: 1
-  dim_inner: 256
+  dim_inner: 128
   layer_type: gcnconv
   stage_type: skipsum
   batchnorm: true
@@ -83,3 +83,9 @@ optim:
   weight_decay: 1e-5
   scheduler: cosine_with_warmup
   num_warmup_epochs: 5
+maxclique_loss:
+  beta: 0.1
+metrics:
+  maxclique:
+    dec_length: 300
+    num_seeds: 4

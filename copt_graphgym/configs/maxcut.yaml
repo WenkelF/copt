@@ -21,7 +21,7 @@ dataset:
   multiprocessing: true
   label: false
 posenc_LapPE:
-  enable: true
+  enable: false
   eigen:
     laplacian_norm: none
     eigvec_norm: L2
@@ -34,7 +34,7 @@ posenc_LapPE:
   n_heads: 4  # Only used when `posenc.model: Transformer`
   raw_norm_type: none
 posenc_RWSE:
-  enable: true
+  enable: false
   kernel:
     times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
   model: Linear
@@ -46,14 +46,14 @@ posenc_GraphStats:
   dim_pe: 32
   raw_norm_type: none
 posenc_NormalRE:
-  enable: true
+  enable: false
   dim_pe: 16
 train:
   mode: copt
   # compile: True
   task: maxcut
   batch_size: 256
-  eval_period: 1
+  val_period: 1
   ckpt_period: 100
   ckpt_best: true
 model:

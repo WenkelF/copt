@@ -89,6 +89,8 @@ class HybridConv_v2(MessagePassing):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.channel_list = channel_list
+        self.channel_low = [channel for channel in channel_list if len(channel) == 1]
+        self.channel_band = [channel for channel in channel_list if len(channel) == 2]
         self.radius_list = list(set([agg for channel in channel_list for agg in channel]))
         self.radius_list.sort()
         self.num_heads = num_heads
@@ -103,12 +105,18 @@ class HybridConv_v2(MessagePassing):
             self.head_dict[str(channel)] = nn.ModuleList()
             for _ in range(num_heads):
                 self.head_dict[str(channel)].append(nn.Linear(input_dim, output_dim, bias=bias))
-        self.att_pre_low = nn.Parameter(torch.empty(num_heads, output_dim))
-        self.att_pre_band = nn.Parameter(torch.empty(num_heads, output_dim))
-        self.att_channel_low = nn.Parameter(torch.empty(num_heads, output_dim))
-        self.att_channel_band = nn.Parameter(torch.empty(num_heads, output_dim))
+        if len(self.channel_low) > 0:
+            self.att_pre_low = nn.Parameter(torch.empty(num_heads, output_dim))
+            self.att_channel_low = nn.Parameter(torch.empty(num_heads, output_dim))
+        if len(self.channel_band) > 0:
+            self.att_pre_band = nn.Parameter(torch.empty(num_heads, output_dim))
+            self.att_channel_band = nn.Parameter(torch.empty(num_heads, output_dim))
         if depth_mlp > 0:
-            m = 2
+            m = 0
+            if len(self.channel_low) > 0:
+                m += 1
+            if len(self.channel_band) > 0:
+                m += 1
             if skip:
                 m += 1
             self.mlp_out = MLP([m * output_dim] + depth_mlp * [output_dim], bias=bias, activation=activation, norm=None)
@@ -122,10 +130,12 @@ class HybridConv_v2(MessagePassing):
         for channel in self.channel_list:
             for k in range(self.num_heads):
                 self.head_dict[str(channel)][k].reset_parameters()
-        glorot(self.att_pre_low)
-        glorot(self.att_pre_band)
-        glorot(self.att_channel_low)
-        glorot(self.att_channel_band)
+        if len(self.channel_low) > 0:
+            glorot(self.att_pre_low)
+            glorot(self.att_channel_low)
+        if len(self.channel_band) > 0:
+            glorot(self.att_pre_band)
+            glorot(self.att_channel_band)
         if self.mlp_out is not None:
             self.mlp_out.reset_parameters()
 
@@ -194,22 +204,29 @@ class HybridConv_v2(MessagePassing):
                 for k in range(self.num_heads):
                     heads.append(self.activation_att1(self.head_dict[str(channel)][k](h)))
                 x_channel_band.append(torch.stack(heads, dim=0))
-            
-        e_pre_low = self.activation_att2(torch.matmul(x_channel_low[0], self.att_pre_low.unsqueeze(-1)))
-        e_pre_band = self.activation_att2(torch.matmul(x_channel_band[0], self.att_pre_band.unsqueeze(-1)))
-        e_channel_list_low = [self.activation_att2(torch.matmul(x_channel, self.att_channel_low.unsqueeze(-1))) for x_channel in x_channel_low[1:]]
-        e_channel_list_band = [self.activation_att2(torch.matmul(x_channel, self.att_channel_band.unsqueeze(-1))) for x_channel in x_channel_band]
-        e_low = torch.stack(e_channel_list_low, dim=0) + e_pre_low
-        e_band = torch.stack(e_channel_list_band, dim=0) + e_pre_band
-        channel_weights_low = torch.softmax(e_low, dim=0)
-        channel_weights_band = torch.softmax(e_band, dim=0)
+        
+        x_low, x_band = None, None
+        if len(x_channel_low) > 0:
+            e_pre_low = self.activation_att2(torch.matmul(x_channel_low[0], self.att_pre_low.unsqueeze(-1)))
+            e_channel_list_low = [self.activation_att2(torch.matmul(x_channel, self.att_channel_low.unsqueeze(-1))) for x_channel in x_channel_low[1:]]
+            e_low = torch.stack(e_channel_list_low, dim=0) + e_pre_low
+            channel_weights_low = torch.softmax(e_low, dim=0)
+            weighted_channels_low = torch.mul(channel_weights_low, torch.stack(x_channel_low[1:], dim=0))
+            x_low = weighted_channels_low.sum(dim=0).mean(dim=0)
+        if len(x_channel_band) > 0:
+            e_pre_band = self.activation_att2(torch.matmul(x_channel_band[0], self.att_pre_band.unsqueeze(-1)))
+            e_channel_list_band = [self.activation_att2(torch.matmul(x_channel, self.att_channel_band.unsqueeze(-1))) for x_channel in x_channel_band]
+            e_band = torch.stack(e_channel_list_band, dim=0) + e_pre_band
+            channel_weights_band = torch.softmax(e_band, dim=0)
+            weighted_channels_band = torch.mul(channel_weights_band, torch.stack(x_channel_band, dim=0))
+            x_band = weighted_channels_band.sum(dim=0).mean(dim=0)
 
-        weighted_channels_low = torch.mul(channel_weights_low, torch.stack(x_channel_low[1:], dim=0))
-        weighted_channels_band = torch.mul(channel_weights_band, torch.stack(x_channel_band, dim=0))
-        x_low = weighted_channels_low.sum(dim=0).mean(dim=0)
-        x_band = weighted_channels_band.sum(dim=0).mean(dim=0)
-
-        x = torch.cat([x_low, x_band], dim=-1)
+        combine = []
+        if x_low is not None:
+            combine.append(x_low)
+        if x_band is not None:
+            combine.append(x_band)
+        x = torch.cat(combine, dim=-1)
 
         return x
 

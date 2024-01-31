@@ -42,9 +42,9 @@ parameters:
 
   gnn.layers_mp:
     values:
-      - 1
-      - 2
-      - 4
+      # - 1
+      # - 2
+      # - 4
       # - 6
       - 8
       # - 10
@@ -55,10 +55,10 @@ parameters:
       # - 32
       # - 64
 
-  gnn.hybrid_v2.skip:
-    values:
-      - true
-      - false
+  # gnn.hybrid_v2.skip:
+  #   values:
+  #     - true
+  #     - false
 
   gnn.dim_inner:
     values:
@@ -74,25 +74,43 @@ parameters:
       # - 0.00003
       - 0.0001
       - 0.0003
-      - 0.001
-      - 0.003
+      # - 0.001
+      # - 0.003
   
   seed:
     values:
       - 1
       - 2
-      # - 3
+      - 3
 
-  model.loss_beta:
+  metrics.maxclique.dec_length:
+    values:
+      - 300
+    
+  metrics.maxclique.num_seeds:
+    values:
+      - 1
+      - 4
+   
+  mis_loss.beta:
     values:
       - "0.1"
-      - "0.2"
-      - "0.5"
+      # - "0.3"
+      # - "0.5"
       - "1.0"
-      - "1.5"
-      - "2.0"
+      # - "1.5"
+      # - "2.0"
+      # - "3.0"
+      # - "10.0"
+      # - "30.0"
+      # - "100.0"
       
   train.batch_size:
-    value: 128
+    values:
+      - 64
+      - 256
+
+  optim.max_epoch:
+    value: 30
 
 program: main_graphgym.py

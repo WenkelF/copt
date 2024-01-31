@@ -30,6 +30,8 @@ class COPTModule(GraphGymModule):
         else:
             self.eval_func_dict = EVAL_FUNCTION_DICT[cfg.train.task]
         for key, eval_func in self.eval_func_dict.items():
+            if cfg.train.task in cfg.metrics:
+                eval_func = partial(eval_func, **cfg.metrics[cfg.train.task])
             self.eval_func_dict[key] = eval_func
 
     def forward(self, *args, **kwargs):

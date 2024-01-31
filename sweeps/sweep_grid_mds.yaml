@@ -20,8 +20,8 @@ parameters:
     values:
       - GraphStats
       - RWSE
-      - LapPE
-      - NormalRE
+      # - LapPE
+      # - NormalRE
       # - UniformRE
       # - RWSE+GraphStats
       # - LapPE+GraphStats
@@ -47,8 +47,8 @@ parameters:
       # - 4
       # - 6
       # - 8
-      - 10
-      - 11
+      # - 10
+      # - 11
       - 12
       # - 14
       # - 16
@@ -65,7 +65,7 @@ parameters:
     values:
       # - 32
       # - 64
-      - 128
+      # - 128
       - 256
       # - 512
 
@@ -96,6 +96,6 @@ parameters:
     value: 256
 
   optim.max_epoch:
-    value: 200
+    value: 300
 
 program: main_graphgym.py

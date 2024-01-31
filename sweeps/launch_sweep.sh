@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#SBATCH --array=1-56%16
+#SBATCH --array=1-48%12
 
 ## Name of your SLURM job
 # SBATCH --job-name=run
@@ -16,10 +16,11 @@
 ## Time limit for the job
 #SBATCH --time=12:00:00
 
-#SBATCH --mem=10Gb
+#SBATCH --mem=40Gb
 
 ## Number of GPUs to use
 #SBATCH --gres=gpu:1
+##SBATCH --gres=gpu:48gb:1
 
 ## Partition to use,
 #SBATCH --partition=long
@@ -34,4 +35,4 @@ source /home/mila/f/frederik.wenkel/.bashrc
 
 conda activate /home/mila/f/frederik.wenkel/miniconda3/envs/copt
 
-wandb agent --count 1 wenkelf/co_expts/pr9if48g
+wandb agent --count 1 wenkelf/co_expts/1bqn6vjv

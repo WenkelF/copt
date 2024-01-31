@@ -5,7 +5,7 @@ command:
   - copt_graphgym/configs/mc.yaml
   - ${args_no_hyphens}
 
-name: hybrid-v2 -- mc -- rb small
+name: hybrid-v2 -- mc -- rb small (try improved decoder)
 method: grid
 
 metric:
@@ -19,19 +19,19 @@ parameters:
   dataset.node_encoder_name:
     values:
       - GraphStats
-      - RWSE
-      - LapPE
-      - NormalRE
-      - UniformRE
-      - RWSE+GraphStats
-      - LapPE+GraphStats
+      # - RWSE
+      # - LapPE
+      # - NormalRE
+      # - UniformRE
+      # - RWSE+GraphStats
+      # - LapPE+GraphStats
 
   gnn.layer_type:
     value: hybridconv-v2
 
   gnn.layers_pre_mp:
     values:
-      - 1
+      # - 1
       # - 2
       - 4
       
@@ -44,7 +44,7 @@ parameters:
     values:
       # - 1
       # - 2
-      - 4
+      # - 4
       # - 6
       - 8
       # - 10
@@ -55,10 +55,10 @@ parameters:
       # - 32
       # - 64
 
-  gnn.hybrid_v2.skip:
-    values:
-      - true
-      - false
+  # gnn.hybrid_v2.skip:
+  #   values:
+  #     - true
+  #     - false
 
   gnn.dim_inner:
     values:
@@ -83,13 +83,27 @@ parameters:
       - 2
       - 3
 
-  model.loss_beta:
+  maxclique_loss.beta:
     values:
-      - "0.1"
-      - "0.5"
+      # - "0.1"
+      # - "0.3"
       - "1.0"
-     
+
+  metrics.maxclique.dec_length:
+    value: 100
+    
+  metrics.maxclique.num_seeds:
+    values:
+      # - 1
+      - 4
+   
   train.batch_size:
     value: 64
 
+  # optim.batch_accumulation:
+  #   value: 2
+
+  optim.max_epoch:
+    value: 20
+  
 program: main_graphgym.py

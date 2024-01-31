@@ -2,10 +2,10 @@ command:
   - python
   - ${program}
   - --cfg
-  - copt_graphgym/configs/mcut.yaml
+  - copt_graphgym/configs/maxcut.yaml
   - ${args_no_hyphens}
 
-name: hybrid-v2 -- mcut -- ba small
+name: hybrid-v2 -- mcut (ba small) -- channel ablation
 method: grid
 
 metric:
@@ -19,19 +19,26 @@ parameters:
   dataset.node_encoder_name:
     values:
       - GraphStats
-      - RWSE
-      - LapPE
-      - NormalRE
-      - UniformRE
-      - RWSE+GraphStats
-      - LapPE+GraphStats
+      # - RWSE
+      # - LapPE
+      # - NormalRE
+      # - UniformRE
+      # - RWSE+GraphStats
+      # - LapPE+GraphStats
 
   gnn.layer_type:
-    value: hybridconv-v2
+    values:
+      - hybridconv-v2
+      # - hybridconv-v3
+
+  gnn.hybrid_v2.channel_list:
+    values:
+      - [[0, 1], [1, 2], [2, 4]]
+      - [[1], [2], [4]]
 
   gnn.layers_pre_mp:
     values:
-      - 1
+      # - 1
       # - 2
       - 4
       
@@ -46,44 +53,76 @@ parameters:
       # - 2
       # - 4
       # - 6
-      - 8
+      # - 8
       # - 10
       # - 12
       # - 14
-      # - 16
+      - 16
       # - 24
       # - 32
       # - 64
 
-  gnn.hybrid_v2.skip:
-    values:
-      - true
-      - false
+  # gnn.batchnorm:
+  #   values:
+  #     - true
+  #     - false
+
+  # gnn.act:
+  #   values:
+  #     - null
+  #     - relu
+
+  # gnn.dropout:
+  #   values:
+  #     - 0.1
+  #     - 0.2
+  #     - 0.3
+  #     - 0.4
+  #     - 0.5
+
+  # gnn.hybrid_v2.skip:
+  #   values:
+  #     - true
+  #     - false
+
+  # gnn.stage_type:
+  #   values:
+  #     - none
+  #     - skipsum
 
   gnn.dim_inner:
     values:
       # - 32
       # - 64
-      - 128
-      # - 256
+      # - 128
+      - 256
       # - 512
 
-  optim.base_lr:
-    values:
-      # - 0.00001
-      # - 0.00003
-      # - 0.0001
-      # - 0.0003
-      # - 0.001
-      - 0.003
+  # optim.base_lr:
+  #   values:
+  #     # - 0.00001
+  #     # - 0.00003
+  #     # - 0.0001
+  #     # - 0.0003
+  #     - 0.001
+  #     - 0.003
+  #     - 0.01
+
+  # gnn.hybrid_v2.num_heads:
+  #   values:
+  #     - 1
+  #     - 2
   
   seed:
     values:
       - 1
       - 2
-      # - 3
+      - 3
 
   train.batch_size:
-    value: 64
+    value: 256
+
+  optim.max_epoch:
+    value: 200
 
 program: main_graphgym.py

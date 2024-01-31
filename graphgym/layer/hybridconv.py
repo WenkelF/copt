@@ -148,6 +148,7 @@ class HybridConv(MessagePassing):
                 # propagate_type: (x: Tensor, edge_weight: OptTensor)
                 x = self.propagate(edge_index, x=x, edge_weight=edge_weight, size=None)
             x_agg_dict[this_r] = x
+            r = this_r
 
         for channel in self.channel_list:
             if len(channel) == 1:
