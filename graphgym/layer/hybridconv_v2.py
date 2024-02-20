@@ -1,6 +1,8 @@
 from typing import List, Tuple, Optional, Dict
 from collections import OrderedDict
 
+from copy import deepcopy
+
 from torch import Tensor
 
 import torch
@@ -12,8 +14,9 @@ from torch_geometric.nn.conv.gcn_conv import gcn_norm
 from torch_geometric.nn.dense.linear import Linear
 from torch_geometric.nn.models import MLP
 from torch_geometric.typing import SparseTensor
-from torch_geometric.utils import spmm
+from torch_geometric.utils import spmm, scatter, remove_self_loops, add_remaining_self_loops
 from torch_geometric.nn.inits import glorot
+from torch_geometric.utils.num_nodes import maybe_num_nodes
 
 from torch_geometric.graphgym.models.layer import LayerConfig
 from torch_geometric.graphgym.register import register_layer
@@ -74,12 +77,14 @@ class HybridConv_v2(MessagePassing):
             output_dim: int,
             channel_list: List[Tuple[int]] = [[0], [1], [2], [4], [0, 1], [1, 2], [2, 4]],
             num_heads: int = 1,
-            activation_att1: str = 'elu',
-            activation_att2: str = None,
-            activation: str = 'relu',
+            activation_att1: str = 'relu',
+            activation_att2: str = 'relu',
+            activation: str = 'leaky_relu',
             depth_mlp: int = 1,
             skip: bool = False,
             add_self_loops: bool = True,
+            norm: str = 'gcn',
+            filter_norm: bool = False,
             bias: bool = True,
             **kwargs
     ):
@@ -96,6 +101,8 @@ class HybridConv_v2(MessagePassing):
         self.num_heads = num_heads
         self.skip = skip
         self.add_self_loops = add_self_loops
+        self.norm = norm
+        self.filter_norm = filter_norm
         self.activation_att1 = ACTIVATION_DICT[activation_att1]
         self.activation_att2 = ACTIVATION_DICT[activation_att2]
         self.activation = ACTIVATION_DICT[activation]
@@ -141,16 +148,26 @@ class HybridConv_v2(MessagePassing):
 
     def forward(self, x, edge_index) -> Tensor:
         edge_weight = None
-
-        if isinstance(edge_index, Tensor):
+        
+        if self.norm == 'gcn':
             edge_index, edge_weight = gcn_norm(  # yapf: disable
                 edge_index, edge_weight, x.size(self.node_dim), False,
                 self.add_self_loops, self.flow, dtype=x.dtype)
-        elif isinstance(edge_index, SparseTensor):
-            edge_index = gcn_norm(  # yapf: disable
+        elif self.norm == 'rw':
+            edge_index, edge_weight = rw_norm(  # yapf: disable
                 edge_index, edge_weight, x.size(self.node_dim), False,
                 self.add_self_loops, self.flow, dtype=x.dtype)
-
+        elif self.norm == 'sym':
+            edge_index, edge_weight = sym_norm(  # yapf: disable
+                edge_index, edge_weight, x.size(self.node_dim), False,
+                self.add_self_loops, self.flow, dtype=x.dtype)
+        elif self.norm == 'avg':
+            edge_index, edge_weight = avg_norm(  # yapf: disable
+                edge_index, edge_weight, x.size(self.node_dim), False,
+                self.add_self_loops, self.flow, dtype=x.dtype)
+        else:
+            raise NotImplementedError('norm type not supported')
+        
         r_tmp = 0
         x_agg_dict = OrderedDict()
         x_agg_dict[0] = x
@@ -168,9 +185,9 @@ class HybridConv_v2(MessagePassing):
 
         for channel in self.channel_list:
             if len(channel) == 1:
-                x_channel_dict[str(channel)] = x_agg_dict[channel[0]]
+                x_channel_dict[str(channel)] = self.normalize_filter(x_agg_dict[channel[0]]) if self.filter_norm else x_agg_dict[channel[0]]
             else:
-                x_channel_dict[str(channel)] = x_agg_dict[channel[0]] - x_agg_dict[channel[1]]
+                x_channel_dict[str(channel)] = self.normalize_filter(x_agg_dict[channel[0]] - x_agg_dict[channel[1]]) if self.filter_norm else x_agg_dict[channel[0]] - x_agg_dict[channel[1]]
 
         x = self.channel_attention(x_channel_dict)
 
@@ -230,6 +247,10 @@ class HybridConv_v2(MessagePassing):
 
         return x
 
+    def normalize_filter(self, x: Tensor, eps: float = 1e-5) -> Tensor:
+        mean, var = x.mean(0), x.var(0)
+        return (x - mean) / torch.sqrt(var + eps)
+
     def __repr__(self) -> str:
         return (f'{self.__class__.__name__}({self.input_dim}, '
                 f'{self.output_dim}, channel_list={self.channel_list})')
@@ -241,18 +262,22 @@ class HybridConvLayer(nn.Module):
 
     def __init__(self, layer_config: LayerConfig, **kwargs):
         super().__init__()
-        self.model = HybridConv_v2(layer_config.dim_in,
-                                layer_config.dim_out,
-                                channel_list=cfg.gnn.hybrid_v2.channel_list,
-                                num_heads=cfg.gnn.hybrid_v2.num_heads,
-                                activation_att1=cfg.gnn.hybrid_v2.activation_att1,
-                                activation_att2=cfg.gnn.hybrid_v2.activation_att2,
-                                activation=cfg.gnn.hybrid_v2.activation,
-                                depth_mlp=cfg.gnn.hybrid_v2.depth_mlp,
-                                skip=cfg.gnn.hybrid_v2.skip,
-                                add_self_loops=cfg.gnn.hybrid.add_self_loops,
-                                bias=layer_config.has_bias,
-                                **kwargs)
+        self.model = HybridConv_v2(
+            layer_config.dim_in,
+            layer_config.dim_out,
+            channel_list=cfg.gnn.hybrid_v2.channel_list,
+            num_heads=cfg.gnn.hybrid_v2.num_heads,
+            activation_att1=cfg.gnn.hybrid.activation_att1,
+            activation_att2=cfg.gnn.hybrid.activation_att2,
+            activation=cfg.gnn.hybrid.activation,
+            depth_mlp=cfg.gnn.hybrid_v2.depth_mlp,
+            skip=cfg.gnn.hybrid_v2.skip,
+            add_self_loops=cfg.gnn.hybrid.add_self_loops,
+            norm=cfg.gnn.hybrid.norm,
+            filter_norm=cfg.gnn.hybrid.filter_norm,
+            bias=layer_config.has_bias,
+            **kwargs
+        )
 
     def forward(self, batch):
         batch.x = self.model(batch.x, batch.edge_index)
@@ -260,35 +285,96 @@ class HybridConvLayer(nn.Module):
 
 
 
-class RWNorm(BaseTransform):
-    r"""Applies the GCN normalization from the `"Semi-supervised Classification
-    with Graph Convolutional Networks" <https://arxiv.org/abs/1609.02907>`_
-    paper (functional name: :obj:`gcn_norm`).
+def rw_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
+             add_self_loops=True, flow="source_to_target", dtype=None):
 
-    .. math::
-        \mathbf{\hat{A}} = \mathbf{\hat{D}}^{-1/2} (\mathbf{A} + \mathbf{I})
-        \mathbf{\hat{D}}^{-1/2}
+    fill_value = 2. if improved else 1.
 
-    where :math:`\hat{D}_{ii} = \sum_{j=0} \hat{A}_{ij} + 1`.
-    """
+    assert flow in ['source_to_target', 'target_to_source']
+    num_nodes = maybe_num_nodes(edge_index, num_nodes)
+    
+    edge_index_wo_self_loops, _ = remove_self_loops(edge_index)
 
-    def __init__(self, add_self_loops: bool = True):
-        self.add_self_loops = add_self_loops
+    if add_self_loops:
+        edge_index_w_self_loops, edge_weight = add_remaining_self_loops(
+            edge_index_wo_self_loops, edge_weight, fill_value, num_nodes)
 
-    def forward(self, data: Data) -> Data:
-        gcn_norm = torch_geometric.nn.conv.gcn_conv.gcn_norm
-        assert 'edge_index' in data or 'adj_t' in data
+    if edge_weight is None:
+        edge_weight_w_self_loops = torch.ones((edge_index_w_self_loops.size(1), ), dtype=dtype,
+                                 device=edge_index_w_self_loops.device)
+        edge_weight_wo_self_loops = torch.ones((edge_index_wo_self_loops.size(1), ), dtype=dtype,
+                                 device=edge_index_wo_self_loops.device)
 
-        if 'edge_index' in data:
-            data.edge_index, data.edge_weight = gcn_norm(
-                data.edge_index, data.edge_weight, data.num_nodes,
-                add_self_loops=self.add_self_loops)
-        else:
-            data.adj_t = gcn_norm(data.adj_t,
-                                  add_self_loops=self.add_self_loops)
+    deg = scatter(edge_weight_wo_self_loops, edge_index_wo_self_loops[1], dim=0, dim_size=num_nodes, reduce='sum')
+    deg_inv = deg.pow_(-1.)
+    deg_inv.masked_fill_(deg_inv == float('inf'), 0)
+    edge_weight = edge_weight_w_self_loops * deg_inv[edge_index_w_self_loops[1]]
 
-        return data
+    self_loop_idx = (edge_index_w_self_loops[0] == edge_index_w_self_loops[1])
+    edge_weight[self_loop_idx] = 1.
 
-    def __repr__(self) -> str:
-        return (f'{self.__class__.__name__}('
-                f'add_self_loops={self.add_self_loops})')
+    return edge_index_w_self_loops, edge_weight / 2
+
+
+
+def sym_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
+             add_self_loops=True, flow="source_to_target", dtype=None):
+
+    fill_value = 2. if improved else 1.
+
+    assert flow in ['source_to_target', 'target_to_source']
+    num_nodes = maybe_num_nodes(edge_index, num_nodes)
+    
+    edge_index_wo_self_loops, _ = remove_self_loops(edge_index)
+
+    if add_self_loops:
+        edge_index_w_self_loops, edge_weight = add_remaining_self_loops(
+            edge_index_wo_self_loops, edge_weight, fill_value, num_nodes)
+
+    if edge_weight is None:
+        edge_weight_w_self_loops = torch.ones((edge_index_w_self_loops.size(1), ), dtype=dtype,
+                                 device=edge_index_w_self_loops.device)
+        edge_weight_wo_self_loops = torch.ones((edge_index_wo_self_loops.size(1), ), dtype=dtype,
+                                 device=edge_index_wo_self_loops.device)
+
+    deg = scatter(edge_weight_wo_self_loops, edge_index_wo_self_loops[1], dim=0, dim_size=num_nodes, reduce='sum')
+    deg_inv_sqr = deg.pow_(-0.5)
+    deg_inv_sqr.masked_fill_(deg_inv_sqr == float('inf'), 0)
+    edge_weight = deg_inv_sqr[edge_index_w_self_loops[0]] * edge_weight_w_self_loops * deg_inv_sqr[edge_index_w_self_loops[1]]
+
+    self_loop_idx = (edge_index_w_self_loops[0] == edge_index_w_self_loops[1])
+    edge_weight[self_loop_idx] = 1.
+
+    return edge_index_w_self_loops, edge_weight / 2
+
+
+
+def avg_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
+             add_self_loops=True, flow="source_to_target", dtype=None):
+
+    fill_value = 2. if improved else 1.
+
+    assert flow in ['source_to_target', 'target_to_source']
+    num_nodes = maybe_num_nodes(edge_index, num_nodes)
+    
+    edge_index_wo_self_loops, _ = remove_self_loops(edge_index)
+
+    if add_self_loops:
+        edge_index_w_self_loops, edge_weight = add_remaining_self_loops(
+            edge_index_wo_self_loops, edge_weight, fill_value, num_nodes)
+
+    if edge_weight is None:
+        edge_weight_w_self_loops = torch.ones((edge_index_w_self_loops.size(1), ), dtype=dtype,
+                                 device=edge_index_w_self_loops.device)
+        edge_weight_wo_self_loops = torch.ones((edge_index_wo_self_loops.size(1), ), dtype=dtype,
+                                 device=edge_index_wo_self_loops.device)
+
+    deg = scatter(edge_weight_wo_self_loops, edge_index_wo_self_loops[1], dim=0, dim_size=num_nodes, reduce='sum')
+    deg_inv = deg.pow_(-1.)
+    deg_inv.masked_fill_(deg_inv == float('inf'), 0)
+    edge_weight = edge_weight_w_self_loops * deg_inv[edge_index_w_self_loops[0]]
+
+    self_loop_idx = (edge_index_w_self_loops[0] == edge_index_w_self_loops[1])
+    edge_weight[self_loop_idx] = 1.
+
+    return edge_index_w_self_loops, edge_weight / 2
