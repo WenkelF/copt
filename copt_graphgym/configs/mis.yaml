@@ -60,7 +60,6 @@ train:
 model:
   type: gnn
   loss_fun: mis_loss
-  loss_beta: 2.0
   edge_decoding: dot
   graph_pooling: mean
 gnn:

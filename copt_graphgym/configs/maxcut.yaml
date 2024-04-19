@@ -71,7 +71,7 @@ gnn:
   layer_type: gcnconv
   stage_type: skipsum   # options: skipsum, skipconcat, stack (none)
   batchnorm: true
-  act: relu
+  act: elu
   last_act: sigmoid
   dropout: 0.3
   agg: mean
