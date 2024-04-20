@@ -1,4 +1,5 @@
 import logging
+import time
 import warnings
 from typing import Optional
 
@@ -55,6 +56,7 @@ def train(model: GraphGymModule, datamodule, logger: bool = True,
         accelerator=cfg.accelerator,
         devices='auto' if not torch.cuda.is_available() else cfg.devices,
         check_val_every_n_epoch=cfg.train.val_period,
+        accumulate_grad_batches=cfg.optim.batch_accumulation
     )
 
     if cfg.wandb.use:
@@ -64,4 +66,7 @@ def train(model: GraphGymModule, datamodule, logger: bool = True,
         trainer.fit(model, datamodule=datamodule)
     elif not cfg.pretrained.dir:
         logging.warning(f'You are running inference on a model that has not been trained. Either train a model first, or provide a checkpoint using "cfg.pretrained.dir".')
+    t1 = time.time()
     trainer.test(model, datamodule=datamodule)
+    t2 = time.time()
+    print(f'Test time: {t2-t1}')
