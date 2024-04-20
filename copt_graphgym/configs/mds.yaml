@@ -2,10 +2,11 @@
 out_dir: results
 metric_best: mae
 num_workers: 4
+dim_out: 1
 wandb:
   use: True
-  name: sweep
-  project: co_mds
+  name: mds
+  project: co_expts
   entity: wenkelf
 dataset:
   format: ba
@@ -15,7 +16,7 @@ dataset:
   split_mode: cv-kfold-5
   split_dir: splits
   node_encoder: False
-  node_encoder_name: RWSE
+  node_encoder_name: GraphStats
   set_graph_stats: true
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
@@ -53,13 +54,12 @@ train:
   # compile: True
   task: mds
   batch_size: 256
-  eval_period: 1
-  ckpt_period: 100
+  val_period: 5
+  ckpt_period: 500
   ckpt_best: true
 model:
   type: gnn
   loss_fun: mds_loss
-  loss_beta: 2.0
   edge_decoding: dot
   graph_pooling: mean
 gnn:
@@ -79,7 +79,7 @@ gnn:
   normalize_adj: false
 optim:
   base_lr: 0.003
-  max_epoch: 200
+  max_epoch: 100
   optimizer: adamW
   weight_decay: 1e-5
   scheduler: cosine_with_warmup

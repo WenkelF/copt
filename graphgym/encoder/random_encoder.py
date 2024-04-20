@@ -2,7 +2,10 @@ from abc import ABC, abstractmethod
 
 import torch
 import torch.nn as nn
+from torch_geometric.graphgym import cfg
 from torch_geometric.graphgym.register import register_node_encoder
+
+from graphgym.utils import get_device
 
 
 class RandomNodeEncoder(nn.Module, ABC):
@@ -57,6 +60,22 @@ class BernoulliRENodeEncoder(RandomNodeEncoder):
 
     def generator(self, num_nodes: int, device: str) -> torch.Tensor:
         return torch.rand(num_nodes, self.dim_emb).float().to(device)
+
+
+@register_node_encoder("DiracRE")
+class DiracRENodeEncoder(RandomNodeEncoder):
+
+    def __init__(self, dim_emb, expand_x: bool = False):
+        super().__init__(dim_emb, expand_x)
+        device = get_device(cfg.posenc_GPSE.accelerator, cfg.accelerator)
+        self.encoder = torch.nn.Linear(cfg.posenc_DiracRE.dim_pe, dim_emb).to(device)
+
+    def generator(self, num_nodes: int, device: str) -> torch.Tensor:
+        zeros = torch.zeros(num_nodes, cfg.posenc_DiracRE.dim_pe)
+        rand_idx = torch.randint(low=0, high=num_nodes, size=())
+        zeros[rand_idx] = 1
+        out = self.encoder(zeros.float().to(device))
+        return out
 
 
 @register_node_encoder("NormalFixedRE")

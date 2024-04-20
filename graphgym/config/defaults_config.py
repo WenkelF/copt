@@ -37,7 +37,7 @@ def extended_cfg(cfg):
     # In training, if True (and also cfg.train.enable_ckpt is True) then
     # always checkpoint the current best model based on validation performance,
     # instead, when False, follow cfg.train.eval_period checkpointing frequency.
-    cfg.train.ckpt_best = False
+    cfg.train.ckpt_best = True
     cfg.train.task = None
 
     # If set to some string value indicating the output directory, then dump
@@ -54,11 +54,9 @@ def extended_cfg(cfg):
     # What device to use for TorchMetrics. "default" means use the same value
     # as cfg.accelerator.
     cfg.val.accelerator = "default"
+    cfg.val.drop_last = False
 
     # Number of node and graph targets, initialized with null value of -1.
     # Used by hybrid prediction head to set the number of node and graph heads.
     cfg.share.num_node_targets = -1
     cfg.share.num_graph_targets = -1
-
-
-    cfg.model.loss_beta = None

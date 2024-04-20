@@ -4,6 +4,7 @@ from torch_geometric.graphgym import register
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.models.layer import new_layer_config, MLP
 from torch_geometric.graphgym.register import register_head
+from torch_geometric.utils import unbatch
 
 
 def _apply_index(batch):
@@ -16,6 +17,21 @@ def _apply_index(batch):
         ])
         pred, true = pred[idx], true[idx]
     return pred, true
+
+
+def minmax_norm_pyg(data):
+    x_list = unbatch(data.x, data.batch)
+
+    p_list = []
+    for x in x_list:
+        x_min = x.min()
+        x_max = x.max()
+
+        p_list.append((x - x_min) / (x_max - x_min + 1e-6))
+
+    data.x = torch.cat(p_list, dim=0)
+
+    return data
 
 
 @register_head('inductive_node')
@@ -52,11 +68,12 @@ class COPTInductiveNodeHead(nn.Module):
 
     def __init__(self, dim_in, dim_out):
         super(COPTInductiveNodeHead, self).__init__()
+        norm_dict = {'minmax': minmax_norm_pyg}
         self.layer_post_mp = MLP(
             new_layer_config(dim_in, dim_out, cfg.gnn.layers_post_mp,
                              has_act=False, has_bias=True, cfg=cfg))
         self.last_act = None if cfg.gnn.last_act is None else register.act_dict[cfg.gnn.last_act]()
-        self.last_norm = None if cfg.gnn.last_norm is None else register.norm_dict[cfg.gnn.last_norm]
+        self.last_norm = None if cfg.gnn.last_norm is None else norm_dict[cfg.gnn.last_norm]
 
     def forward(self, batch):
         batch = self.layer_post_mp(batch)

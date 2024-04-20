@@ -3,10 +3,8 @@ from functools import partial
 import torch
 import torch.nn as nn
 from torch_geometric.graphgym.config import cfg
-from torch_geometric.graphgym.register import register_act, register_norm
+from torch_geometric.graphgym.register import register_act#, register_norm
 from torch_geometric.utils import unbatch
-
-
 
 
 class SWISH(nn.Module):
@@ -54,4 +52,4 @@ register_act('gelu', nn.GELU)
 register_act('sigmoid', Sigmoid)
 
 
-register_norm('minmax', minmax_norm_pyg)
+#register_norm('minmax', minmax_norm_pyg)

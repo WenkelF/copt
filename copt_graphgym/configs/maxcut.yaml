@@ -2,10 +2,11 @@
 out_dir: results
 metric_best: mae
 num_workers: 4
+dim_out: 1
 wandb:
   use: True
-  name: sweep
-  project: co_mcut
+  name: maxcut
+  project: co_expts
   entity: wenkelf
 dataset:
   format: ba
@@ -15,12 +16,13 @@ dataset:
   split_mode: cv-kfold-5
   split_dir: splits
   node_encoder: true
-  node_encoder_name: RWSE+Degree
+  node_encoder_name: GraphStats
   set_graph_stats: true
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
+  label: false
 posenc_LapPE:
-  enable: true
+  enable: false
   eigen:
     laplacian_norm: none
     eigvec_norm: L2
@@ -33,7 +35,7 @@ posenc_LapPE:
   n_heads: 4  # Only used when `posenc.model: Transformer`
   raw_norm_type: none
 posenc_RWSE:
-  enable: true
+  enable: false
   kernel:
     times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
   model: Linear
@@ -45,14 +47,14 @@ posenc_GraphStats:
   dim_pe: 32
   raw_norm_type: none
 posenc_NormalRE:
-  enable: true
+  enable: false
   dim_pe: 16
 train:
   mode: copt
   # compile: True
   task: maxcut
   batch_size: 256
-  eval_period: 1
+  val_period: 1
   ckpt_period: 100
   ckpt_best: true
 model:
@@ -67,9 +69,9 @@ gnn:
   layers_post_mp: 1
   dim_inner: 256
   layer_type: gcnconv
-  stage_type: skipsum   # other options: skipsum, skipconcat, none?
+  stage_type: skipsum   # options: skipsum, skipconcat, stack (none)
   batchnorm: true
-  act: relu
+  act: elu
   last_act: sigmoid
   dropout: 0.3
   agg: mean

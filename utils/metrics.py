@@ -34,13 +34,24 @@ def maxclique_loss_pyg(batch, beta=0.1):
     return loss / batch.size(0)
 
 
-def maxclique_size_pyg(batch, dec_length=300):
+def maxclique_size_pyg(batch, dec_length=300, num_seeds=1):
 
-    batch = maxclique_decoder_pyg(batch, dec_length=dec_length)
+    batch = maxclique_decoder_pyg(batch, dec_length=dec_length, num_seeds=num_seeds)
 
     data_list = batch.to_data_list()
 
-    size_list = [data.c.sum() for data in data_list]
+    size_list = [data.c_size for data in data_list]
+
+    return torch.Tensor(size_list).mean()
+
+
+def mis_size_pyg(batch, dec_length=300, num_seeds=1):
+
+    batch = mis_decoder_pyg(batch, dec_length=dec_length, num_seeds=num_seeds)
+
+    data_list = batch.to_data_list()
+
+    size_list = [data.is_size for data in data_list]
 
     return torch.Tensor(size_list).mean()
 
@@ -58,26 +69,62 @@ def maxclique_ratio_pyg(batch, dec_length=300):
     return torch.Tensor(metric_list).mean()
 
 
-def maxclique_decoder_pyg(batch, dec_length=300):
+def maxclique_decoder_pyg(batch, dec_length=300, num_seeds=1):
 
     data_list = batch.to_data_list()
 
     for data in data_list:
-        order = torch.argsort(data.x, dim=0, descending=True)
-        c = torch.zeros_like(data.x)
+        c_size_list = []
 
-        edge_index = remove_self_loops(data.edge_index)[0]
-        src, dst = edge_index[0], edge_index[1]
-        
-        c[order[0]] = 1
-        for idx in range(1, min(dec_length, data.num_nodes)):
-            c[order[idx]] = 1
+        for seed in range(num_seeds):
 
-            cTWc = torch.sum(c[src] * c[dst])
-            if c.sum() ** 2 - cTWc - torch.sum(c ** 2) != 0:
-                c[order[idx]] = 0
+            order = torch.argsort(data.x, dim=0, descending=True)
+            c = torch.zeros_like(data.x)
 
-        data.c = c
+            edge_index = remove_self_loops(data.edge_index)[0]
+            src, dst = edge_index[0], edge_index[1]
+            
+            c[order[seed]] = 1
+            for idx in range(seed, min(dec_length, data.num_nodes)):
+                c[order[idx]] = 1
+
+                cTWc = torch.sum(c[src] * c[dst])
+                if c.sum() ** 2 - cTWc - torch.sum(c ** 2) != 0:
+                    c[order[idx]] = 0
+
+            c_size_list.append(c.sum())
+
+        data.c_size = max(c_size_list)
+
+    return Batch.from_data_list(data_list)
+
+
+def mis_decoder_pyg(batch, dec_length=300, num_seeds=1):
+
+    data_list = batch.to_data_list()
+
+    for data in data_list:
+        is_size_list = []
+
+        for seed in range(num_seeds):
+
+            order = torch.argsort(data.x, dim=0, descending=True)
+            c = torch.zeros_like(data.x)
+
+            edge_index = remove_self_loops(data.edge_index)[0]
+            src, dst = edge_index[0], edge_index[1]
+            
+            c[order[seed]] = 1
+            for idx in range(seed, min(dec_length, data.num_nodes)):
+                c[order[idx]] = 1
+
+                cTWc = torch.sum(c[src] * c[dst])
+                if cTWc != 0:
+                    c[order[idx]] = 0
+
+            is_size_list.append(c.sum())
+
+        data.is_size = max(is_size_list)
 
     return Batch.from_data_list(data_list)
 
@@ -268,9 +315,9 @@ def plantedclique_acc_pyg(data):
 
 def mds_size_pyg(data):
 
-    eval = False
-    if not eval:
-        return 0.
+    # eval = False
+    # if not eval:
+    #     return 0.
     
     data_list = data.to_data_list()
 
@@ -280,8 +327,9 @@ def mds_size_pyg(data):
         edge_index = add_self_loops(data.edge_index)[0]
         row, col = edge_index[0], edge_index[1]
 
-        ds = (data.x >= 0.5).squeeze()
-        p[ds] = - torch.inf
+        ds = torch.zeros_like(data.x).squeeze()
+        # ds = (data.x >= 0.5).squeeze()
+        # p[ds] = - torch.inf
        
         t0 = time.time()
         while not is_ds(ds, row, col):
@@ -332,55 +380,55 @@ def is_ds(ds, row, col):
     return all(visited)
 
 
-def mis_size_pyg(data):
+# def mis_size_pyg(data):
 
-    eval = False
-    if not eval:
-        return 0.
+#     # eval = False
+#     # if not eval:
+#     #     return 0.
 
-    data_list = data.to_data_list()
+#     data_list = data.to_data_list()
 
-    iset_list = []
-    for data in data_list:
-        p = deepcopy(data.x).squeeze()
-        edge_index = remove_self_loops(data.edge_index)[0]
-        row, col = edge_index[0], edge_index[1]
+#     iset_list = []
+#     for data in data_list:
+#         p = deepcopy(data.x).squeeze()
+#         edge_index = remove_self_loops(data.edge_index)[0]
+#         row, col = edge_index[0], edge_index[1]
 
-        iset = (data.x >= 0.5).squeeze()
+#         iset = (data.x >= 0.5).squeeze()
 
-        if is_iset(iset, row, col) and any(iset):
-            p[iset] = - torch.inf
+#         if is_iset(iset, row, col) and any(iset):
+#             p[iset] = - torch.inf
 
-            while True:
-                idx = torch.argmax(p)
-                iset[idx] = True
-                p[idx] = - torch.inf
+#             while True:
+#                 idx = torch.argmax(p)
+#                 iset[idx] = True
+#                 p[idx] = - torch.inf
 
-                if not is_iset(iset, row, col):
-                    iset[idx] = False
-                    break
+#                 if not is_iset(iset, row, col):
+#                     iset[idx] = False
+#                     break
 
-            iset_list.append(iset.sum())
+#             iset_list.append(iset.sum())
 
-        else:
-            iset = torch.zeros_like(iset)
+#         else:
+#             iset = torch.zeros_like(iset)
             
-            while True:
-                idx = torch.argmax(p)
-                iset[idx] = True
-                p[idx] = - torch.inf
+#             while True:
+#                 idx = torch.argmax(p)
+#                 iset[idx] = True
+#                 p[idx] = - torch.inf
 
-                if not is_iset(iset, row, col):
-                    iset[idx] = False
-                    break
+#                 if not is_iset(iset, row, col):
+#                     iset[idx] = False
+#                     break
 
-            iset_list.append(iset.sum())
+#             iset_list.append(iset.sum())
 
-    return torch.Tensor(iset_list).mean()
+#     return torch.Tensor(iset_list).mean()
 
 
-def is_iset(iset, row, col):
+# def is_iset(iset, row, col):
 
-    edges = iset[row] * iset[col]
+#     edges = iset[row] * iset[col]
 
-    return all(edges == 0.)
+#     return all(edges == 0.)

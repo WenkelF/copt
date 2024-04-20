@@ -156,8 +156,8 @@ if __name__ == '__main__':
         cfg.run_id = run_id
         seed_everything(cfg.seed)
         auto_select_device()
-        if cfg.pretrained.dir:
-            cfg = load_pretrained_model_cfg(cfg)
+        # if cfg.pretrained.dir:
+        #     cfg = load_pretrained_model_cfg(cfg)
         logging.info(f"[*] Run ID {run_id}: seed={cfg.seed}, "
                      f"split_index={cfg.dataset.split_index}")
         logging.info(f"    Starting now: {datetime.datetime.now()}")
@@ -177,4 +177,6 @@ if __name__ == '__main__':
             datamodule = GraphGymDataModule()
             train(model, datamodule, logger=True)
         else:
+            if cfg.train.mode == 'copt_test':
+                cfg.wandb.use = False
             train_dict[cfg.train.mode](cfg, loaders, model)

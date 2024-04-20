@@ -1,0 +1,109 @@
+command:
+  - python
+  - ${program}
+  - --cfg
+  - copt_graphgym/configs/mc.yaml
+  - ${args_no_hyphens}
+
+name: hybrid-v2 -- mc -- rb small (try improved decoder)
+method: grid
+
+metric:
+  name: size/valid
+  goal: maximize
+
+parameters:
+  dataset.name:
+    value: small
+
+  dataset.node_encoder_name:
+    values:
+      - GraphStats
+      # - RWSE
+      # - LapPE
+      # - NormalRE
+      # - UniformRE
+      # - RWSE+GraphStats
+      # - LapPE+GraphStats
+
+  gnn.layer_type:
+    value: hybridconv-v2
+
+  gnn.layers_pre_mp:
+    values:
+      # - 1
+      # - 2
+      - 4
+      
+  gnn.layers_post_mp:
+    values:
+      - 1
+      # - 2
+
+  gnn.layers_mp:
+    values:
+      # - 1
+      # - 2
+      # - 4
+      # - 6
+      - 8
+      # - 10
+      # - 12
+      # - 14
+      # - 16
+      # - 24
+      # - 32
+      # - 64
+
+  # gnn.hybrid_v2.skip:
+  #   values:
+  #     - true
+  #     - false
+
+  gnn.dim_inner:
+    values:
+      # - 32
+      # - 64
+      - 128
+      # - 256
+      # - 512
+
+  optim.base_lr:
+    values:
+      # - 0.00001
+      # - 0.00003
+      - 0.0001
+      # - 0.0003
+      # - 0.001
+      # - 0.003
+  
+  seed:
+    values:
+      - 1
+      - 2
+      - 3
+
+  maxclique_loss.beta:
+    values:
+      # - "0.1"
+      # - "0.3"
+      - "1.0"
+
+  metrics.maxclique.dec_length:
+    value: 100
+    
+  metrics.maxclique.num_seeds:
+    values:
+      # - 1
+      - 4
+   
+  train.batch_size:
+    value: 64
+
+  # optim.batch_accumulation:
+  #   value: 2
+
+  optim.max_epoch:
+    value: 20
+  
+program: main_graphgym.py

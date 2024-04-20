@@ -24,16 +24,17 @@ def custom_gnn_cfg(cfg):
     cfg.gnn.hybrid = CN()
     cfg.gnn.hybrid.channel_list = [[1], [2], [4], [0, 1], [1, 2], [2, 4]]
     cfg.gnn.hybrid.combine_fn = 'cat'
-    cfg.gnn.hybrid.residual = False
-    cfg.gnn.hybrid.activation_channel = 'relu'
+    cfg.gnn.hybrid.residual = True
+    cfg.gnn.hybrid.activation_att1 = 'relu'
+    cfg.gnn.hybrid.activation_att2 = 'relu'
+    cfg.gnn.hybrid.activation = 'leaky_relu'
     cfg.gnn.hybrid.num_heads = 1
     cfg.gnn.hybrid.add_self_loops = True
+    cfg.gnn.hybrid.norm = 'gcn'
+    cfg.gnn.hybrid.filter_norm = True
     
     cfg.gnn.hybrid_v2 = CN()
     cfg.gnn.hybrid_v2.channel_list = [[0], [1], [2], [4], [0, 1], [1, 2], [2, 4]]
-    cfg.gnn.hybrid_v2.activation_att1 = 'relu'
-    cfg.gnn.hybrid_v2.activation_att2 = 'relu'
-    cfg.gnn.hybrid_v2.activation = 'leaky_relu'
     cfg.gnn.hybrid_v2.num_heads = 1
     cfg.gnn.hybrid_v2.depth_mlp = 1
     cfg.gnn.hybrid_v2.skip = False
