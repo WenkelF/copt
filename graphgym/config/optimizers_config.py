@@ -31,3 +31,6 @@ def extended_optim_cfg(cfg):
 
     # Step size for FLAG
     cfg.optim.flag_step_size = 0.001
+
+    cfg.optim.train_mode = cfg.train.mode
+    cfg.optim.eval_period = cfg.train.val_period
