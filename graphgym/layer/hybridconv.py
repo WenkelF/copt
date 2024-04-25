@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Literal, Tuple, Optional
 from collections import OrderedDict
 
 from torch import Tensor
@@ -74,16 +74,16 @@ class HybridConv(MessagePassing):
             input_dim: int,
             output_dim: int,
             channel_list: List[Tuple[int]] = [[1], [2], [4], [0, 1], [1, 2], [2, 4]],
-            combine_fn: str = 'cat',
+            combine_fn: Literal['cat', 'att', 'att_bias'] = "cat",
             residual: bool = True,
             activation_att1: str = 'relu',
             activation_att2: str = 'relu',
-            activation: str = 'relu',
+            activation: str = 'leaky_relu',
             depth_mlp: int = 1,
             num_heads: int = 1,
             add_self_loops: bool = True,
             norm: str = 'gcn',
-            filter_norm: bool = False,
+            filter_norm_dim: int = 1,
             bias: bool = True,
             **kwargs
     ):
@@ -104,7 +104,7 @@ class HybridConv(MessagePassing):
         self.num_heads = num_heads
         self.add_self_loops = add_self_loops
         self.norm = norm
-        self.filter_norm = filter_norm
+        self.filter_norm_dim = filter_norm_dim
         self.activation_att1 = ACTIVATION_DICT[activation_att1]
         self.activation_att2 = ACTIVATION_DICT[activation_att2]
         self.activation = ACTIVATION_DICT[activation]
@@ -158,22 +158,22 @@ class HybridConv(MessagePassing):
 
         x_channel_list = [x]
 
-        r = 0
+        r_tmp = 0
         x_agg_dict = OrderedDict()
         x_agg_dict.update({0: x})
         for this_r in self.radius_list:
             x = list(x_agg_dict.values())[-1]
-            for _ in range(this_r - r):
+            for _ in range(this_r - r_tmp):
                 # propagate_type: (x: Tensor, edge_weight: OptTensor)
                 x = self.propagate(edge_index, x=x, edge_weight=edge_weight, size=None)
             x_agg_dict[this_r] = x
-            r = this_r
+            r_tmp = this_r
 
         for channel in self.channel_list:
             if len(channel) == 1:
-                x_channel_list.append(x_agg_dict[channel[0]]) if self.filter_norm else x_channel_list.append(self.normalize_filter(x_agg_dict[channel[0]]))
+                x_channel_list.append(self.normalize_filter(x_agg_dict[channel[0]], dim=self.filter_norm_dim))
             else:
-                x_channel_list.append(x_agg_dict[channel[0]] - x_agg_dict[channel[1]]) if self.filter_norm else x_channel_list.append(self.normalize_filter(x_agg_dict[channel[0]] - x_agg_dict[channel[1]]))
+                x_channel_list.append(self.normalize_filter(x_agg_dict[channel[0]] - x_agg_dict[channel[1]], dim=self.filter_norm_dim))
 
         if self.combine_fn == 'cat':
             if not self.residual:
@@ -209,9 +209,12 @@ class HybridConv(MessagePassing):
 
         return out
 
-    def normalize_filter(self, x: Tensor, eps: float = 1e-5) -> Tensor:
-        mean, var = x.mean(0), x.var(0)
-        return (x - mean) / torch.sqrt(var + eps)
+    def normalize_filter(self, x: Tensor, dim: int = 1, eps: float = 1e-5) -> Tensor:
+        if dim in [0, 1]:
+            mean, var = x.mean(dim), x.var(dim)
+            x = (x - mean.unsqueeze(dim)) / torch.sqrt(var + eps).unsqueeze(dim)
+        
+        return x
 
     def __repr__(self) -> str:
         return (f'{self.__class__.__name__}({self.input_dim}, '
@@ -235,6 +238,7 @@ class HybridConvLayer(nn.Module):
             activation=cfg.gnn.hybrid.activation,
             num_heads=cfg.gnn.hybrid.num_heads,
             add_self_loops=cfg.gnn.hybrid.add_self_loops,
+            filter_norm_dim=cfg.gnn.hybrid.filter_norm_dim,
             bias=layer_config.has_bias,
             **kwargs
         )
@@ -242,7 +246,6 @@ class HybridConvLayer(nn.Module):
     def forward(self, batch):
         batch.x = self.model(batch.x, batch.edge_index)
         return batch
-
 
 
 def rw_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
@@ -276,7 +279,6 @@ def rw_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
     return edge_index_w_self_loops, edge_weight / 2
 
 
-
 def sym_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
              add_self_loops=True, flow="source_to_target", dtype=None):
 
@@ -306,7 +308,6 @@ def sym_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
     edge_weight[self_loop_idx] = 1.
 
     return edge_index_w_self_loops, edge_weight / 2
-
 
 
 def avg_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
