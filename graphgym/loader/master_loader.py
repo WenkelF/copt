@@ -17,7 +17,7 @@ import torch
 import torch_geometric.transforms as T
 from numpy.random import default_rng
 from torch_geometric.datasets import (ZINC, GNNBenchmarkDataset, Planetoid,
-                                      TUDataset, WikipediaNetwork)
+                                      TUDataset, WikipediaNetwork, SNAPDataset)
 from torch_geometric.graphgym.config import cfg, set_cfg
 from torch_geometric.graphgym.loader import (load_ogb, load_pyg,
                                              set_dataset_attr)
@@ -238,6 +238,9 @@ def load_dataset_master(format, name, dataset_dir):
 
         elif pyg_dataset_id == 'TUDataset':
             dataset = preformat_TUDataset(dataset_dir, name)
+
+        elif pyg_dataset_id == 'SNAPDataset':
+            dataset = SNAPDataset(dataset_dir, name)  # "./datasets/snap/twitter", "ego-twitter"
 
         elif pyg_dataset_id == 'WikipediaNetwork':
             if name == 'crocodile':
