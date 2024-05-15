@@ -1,6 +1,7 @@
 import logging
 import os
 import os.path as osp
+import pickle
 import time
 import zipfile
 from copy import deepcopy
@@ -224,7 +225,8 @@ def load_dataset_master(format, name, dataset_dir):
         if cfg.train.task == 'maxcut':
             tf_list.append(set_maxcut)
         elif cfg.train.task == 'maxclique':
-            tf_list.append(set_maxclique)
+            if cfg.dataset.name not in ['IMDB-BINARY', 'COLLAB', 'ego-twitter']:
+                tf_list.append(set_maxclique)
         tf_list.append(set_y)
 
         pyg_dataset_id = format.split('-', 1)[1]
@@ -240,7 +242,7 @@ def load_dataset_master(format, name, dataset_dir):
             dataset = preformat_TUDataset(dataset_dir, name)
 
         elif pyg_dataset_id == 'SNAPDataset':
-            dataset = SNAPDataset(dataset_dir, name)  # "./datasets/snap/twitter", "ego-twitter"
+            dataset = preformat_SNAPDataset(dataset_dir, name)  # "./datasets/snap/twitter", "ego-twitter"
 
         elif pyg_dataset_id == 'WikipediaNetwork':
             if name == 'crocodile':
@@ -253,6 +255,7 @@ def load_dataset_master(format, name, dataset_dir):
         else:
             raise ValueError(f"Unexpected PyG Dataset identifier: {format}")
 
+        print(tf_list)
         pre_transform_in_memory(dataset, T.Compose(tf_list), show_progress=True)
 
     elif format in ['er', 'bp', 'rb', 'pc', 'ba']:
@@ -644,6 +647,30 @@ def preformat_TUDataset(dataset_dir, name):
     else:
         ValueError(f"Loading dataset '{name}' from TUDataset is not supported.")
     dataset = TUDataset(dataset_dir, name, pre_transform=func)
+    if name in ['IMDB-BINARY', 'COLLAB', 'ego-twitter']:
+        with open("data/maxclique/" + cfg.dataset.name + "cliqno.txt", "rb") as fp:
+            dataset.data.y = torch.Tensor(pickle.load(fp)).to(int)
+    return dataset
+
+def set_placeholder_y(data):
+    data.y = 1
+    return data
+
+def preformat_SNAPDataset(dataset_dir, name):
+    """Load and preformat datasets from PyG's SNAPDataset.
+
+    Args:
+        dataset_dir: path where to store the cached dataset
+        name: name of the specific dataset in the TUDataset class
+
+    Returns:
+        PyG dataset object
+    """
+
+    dataset = SNAPDataset(dataset_dir, name, pre_transform=set_placeholder_y)
+    if name in ['ego-twitter']:
+        with open("data/maxclique/" + cfg.dataset.name + "cliqno.txt", "rb") as fp:
+            dataset.data.y = torch.Tensor(pickle.load(fp)).to(int)
     return dataset
 
 
@@ -926,5 +953,6 @@ def set_y(data):
     elif cfg.train.task == 'maxcut':
         data.y = data.cut_binary
     elif cfg.train.task == 'maxclique':
-        data.y = data.mc_size
+        if cfg.dataset.name not in ['IMDB-BINARY', 'COLLAB', 'ego-twitter']:
+            data.y = data.mc_size
     return data
