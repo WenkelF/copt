@@ -72,33 +72,18 @@ def set_cfg_posenc(cfg):
     cfg.posenc_EquivStableLapPE.raw_norm_type = 'none'
 
     # Config for pretrained GNN P/SE encoder
-    cfg.posenc_GPSE.model_dir = None
-    cfg.posenc_GPSE.accelerator = "default"
-    cfg.posenc_GPSE.rand_type = 'NormalSE'
-    cfg.posenc_GPSE.use_repr = False  # use one layer before the output if True
-    # What representation to use. 'one_layer_before' uses the representation of
-    # the second to last layer in the poas_mp module as the repr. 'no_post_mp'
-    # uses the input representation to the post_mp module as the repr, in other
-    # words, no_post_mp skips the last pos_mp module.
-    cfg.posenc_GPSE.repr_type = "one_layer_before"
-    cfg.posenc_GPSE.virtual_node = False
-    cfg.posenc_GPSE.input_dropout_be = 0.0
-    cfg.posenc_GPSE.input_dropout_ae = 0.0
-    cfg.posenc_GPSE.save = False
-    cfg.posenc_GPSE.from_saved = False
-    cfg.posenc_GPSE.tag = 1.0
+    cfg.posenc_GPSE.enable = False
+    cfg.posenc_GPSE.dataset = 'molpcba'
+    cfg.posenc_GPSE.inner_dim = 512
+    cfg.posenc_GPSE.model = 'Linear'
+    cfg.posenc_GPSE.layers = 2
+    cfg.posenc_GPSE.input_dropout_be = 0.3
+    cfg.posenc_GPSE.input_dropout_ae = 0.1
 
-    # Loader for each graph
-    cfg.posenc_GPSE.loader = CN()
-    cfg.posenc_GPSE.loader.type = "full"
-    cfg.posenc_GPSE.loader.num_neighbors = [30, 20, 10]
-    cfg.posenc_GPSE.loader.fill_num_neighbors = 5
-    cfg.posenc_GPSE.loader.batch_size = 1024
+
 
     # Multi MLP head hidden dimension. If None, set as the same as gnn.dim_inner
     cfg.gnn.multi_head_dim_inner = None
-    cfg.posenc_GPSE.gnn_cfg = CN(cfg.gnn.copy())
-
     cfg.posenc_GraphLog.model_dir = "pretrained_models/graphlog.pth"
 
     # Config for Laplacian Eigen-decomposition for PEs that use it.
