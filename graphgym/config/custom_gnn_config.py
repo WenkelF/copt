@@ -20,6 +20,8 @@ def custom_gnn_cfg(cfg):
     cfg.gnn.last_act = None
     cfg.gnn.last_norm = None
 
+    cfg.gnn.hybrid_stack = 'concat'
+
     cfg.gnn.hybrid = CN()
     cfg.gnn.hybrid.channel_list = [[1], [2], [4], [0, 1], [1, 2], [2, 4]]
     cfg.gnn.hybrid.combine_fn = 'att_bias'

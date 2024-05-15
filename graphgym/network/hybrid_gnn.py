@@ -22,7 +22,7 @@ class GNNStackStageConcat(torch.nn.Module):
         self.num_layers = num_layers
         self.x_dims = list()
         for i in range(num_layers):
-            if cfg.gnn.stage_type == 'skipconcat':
+            if cfg.gnn.stage_type == 'skipconcat_concat':
                 d_in = dim_in if i == 0 else dim_in + i * dim_out
             else:
                 d_in = dim_in if i == 0 else dim_out
@@ -35,12 +35,12 @@ class GNNStackStageConcat(torch.nn.Module):
         for i, layer in enumerate(self.children()):
             x = batch.x
             batch = layer(batch)
-            if cfg.gnn.stage_type == 'skipsum':
+            x_list.append(batch.x)
+            if cfg.gnn.stage_type == 'skipsum_concat':
                 batch.x = x + batch.x
-            elif (cfg.gnn.stage_type == 'skipconcat'
+            elif (cfg.gnn.stage_type == 'skipconcat_concat'
                   and i < self.num_layers - 1):
                 batch.x = torch.cat([x, batch.x], dim=1)
-                x_list.append(batch.x)
         if cfg.gnn.l2norm:
             batch.x = F.normalize(batch.x, p=2, dim=-1)
         batch.x_list = x_list
@@ -53,7 +53,13 @@ class HybridGNN(GNN):
         super().__init__(dim_in, dim_out, **kwargs)
         GNNHead = register.head_dict[cfg.gnn.head]
         # TODO: decide what to do. maybe sum x_dims
-        post_mp_dim_in = self.mp.x_dims
+        self.stage = cfg.gnn.hybrid_stack
+        if self.stage == 'sum':
+            post_mp_dim_in = self.mp.x_dims[0]
+        elif self.stage == 'concat':
+            post_mp_dim_in = sum(self.mp.x_dims)
+        else:
+            raise ValueError('Stage {} is not supported.'.format(self.stage))
         self.post_mp = GNNHead(dim_in=post_mp_dim_in, dim_out=dim_out)
 
     def forward(self, batch):
@@ -65,8 +71,12 @@ class HybridGNN(GNN):
             batch = self.mp(batch)
 
         # TODO
-        batch.x_list = torch.cat(batch.x_list, dim=-1)
-        batch.x = batch.x_list
+        if self.stage == 'sum':
+            x_list = torch.stack(batch.x_list, dim=-1)
+            x_list = torch.sum(x_list, dim=-1)
+        elif self.stage == 'concat':
+            x_list = torch.cat(batch.x_list, dim=-1)
+        batch.x = x_list
         batch = self.post_mp(batch)
 
         return batch
