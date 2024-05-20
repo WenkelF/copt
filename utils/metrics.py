@@ -56,9 +56,9 @@ def mis_size_pyg(batch, dec_length=300, num_seeds=1):
     return torch.Tensor(size_list).mean()
 
 
-def maxclique_ratio_pyg(batch, dec_length=300, num_seeds=None):
+def maxclique_ratio_pyg(batch, dec_length=300, num_seeds=1):
 
-    batch = maxclique_decoder_pyg(batch, dec_length=dec_length)
+    batch = maxclique_decoder_pyg(batch, dec_length=dec_length, num_seeds=num_seeds)
 
     data_list = batch.to_data_list()
 

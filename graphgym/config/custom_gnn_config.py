@@ -32,7 +32,7 @@ def custom_gnn_cfg(cfg):
     cfg.gnn.hybrid.num_heads = 1
     cfg.gnn.hybrid.add_self_loops = True
     cfg.gnn.hybrid.norm = 'gcn'
-    cfg.gnn.hybrid.filter_norm_dim = 1
+    cfg.gnn.hybrid.filter_norm_dim = None
     
     cfg.gnn.hybrid_v2 = CN()
     cfg.gnn.hybrid_v2.channel_list = [[0], [1], [2], [4], [0, 1], [1, 2], [2, 4]]

@@ -85,7 +85,7 @@ class HybridConv_v2(MessagePassing):
             skip: bool = False,
             add_self_loops: bool = True,
             norm: str = 'gcn',
-            filter_norm_dim: bool = 1,
+            filter_norm_dim: bool = None,
             bias: bool = True,
             **kwargs
     ):
