@@ -39,7 +39,9 @@ def train(model: GraphGymModule, datamodule, logger: bool = True,
 
     callbacks = []
     if cfg.train.enable_ckpt:
-        ckpt_cbk = pl.callbacks.ModelCheckpoint(dirpath=get_ckpt_dir())
+        ckpt_cbk = pl.callbacks.ModelCheckpoint(dirpath=get_ckpt_dir(),
+                                                monitor=cfg.train.ckpt_monitor,
+                                                filename='epoch{epoch:02d}-val_size{size/valid:.2f}')
         callbacks.append(ckpt_cbk)
 
     # Monitor learning rate
@@ -67,6 +69,9 @@ def train(model: GraphGymModule, datamodule, logger: bool = True,
     elif not cfg.pretrained.dir:
         logging.warning(f'You are running inference on a model that has not been trained. Either train a model first, or provide a checkpoint using "cfg.pretrained.dir".')
     t1 = time.time()
-    trainer.test(model, datamodule=datamodule)
+    if cfg.train.enable_ckpt:
+        trainer.test(model, datamodule=datamodule, ckpt_path="best")
+    else:
+        trainer.test(model, datamodule=datamodule)
     t2 = time.time()
     print(f'Test time: {t2-t1}')

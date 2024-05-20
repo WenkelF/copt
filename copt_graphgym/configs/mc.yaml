@@ -57,6 +57,7 @@ train:
   val_period: 1
   ckpt_period: 100
   ckpt_best: true
+  ckpt_monitor: size/valid
 model:
   type: gnn
   loss_fun: maxclique_loss
