@@ -15,7 +15,7 @@ dataset:
   # task_type: classification
   split_mode: cv-kfold-5
   split_dir: splits
-  node_encoder: False
+  node_encoder: true
   node_encoder_name: GraphStats
   set_graph_stats: true
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
@@ -83,11 +83,11 @@ gnn:
     activation_att2: elu
     activation: elu
 optim:
-  base_lr: 0.0001
+  base_lr: 0.001
   max_epoch: 10
   optimizer: adamW
   weight_decay: 1e-5
-  scheduler: cosine_with_warmup
+  scheduler: cos
   num_warmup_epochs: 5
 maxclique_loss:
   beta: 0.1

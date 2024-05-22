@@ -69,7 +69,7 @@ def train(model: GraphGymModule, datamodule, logger: bool = True,
     elif not cfg.pretrained.dir:
         logging.warning(f'You are running inference on a model that has not been trained. Either train a model first, or provide a checkpoint using "cfg.pretrained.dir".')
     t1 = time.time()
-    if cfg.train.enable_ckpt:
+    if not cfg.train.mode == 'copt_test' and cfg.train.enable_ckpt:
         trainer.test(model, datamodule=datamodule, ckpt_path="best")
     else:
         trainer.test(model, datamodule=datamodule)
