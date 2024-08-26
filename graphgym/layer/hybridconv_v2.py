@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional, Dict
+from typing import List, Literal, Tuple, Optional, Dict
 from collections import OrderedDict
 
 from copy import deepcopy
@@ -76,6 +76,7 @@ class HybridConv_v2(MessagePassing):
             input_dim: int,
             output_dim: int,
             channel_list: List[Tuple[int]] = [[0], [1], [2], [4], [0, 1], [1, 2], [2, 4]],
+            combine_fn: Literal['att', 'att_bias'] = "att_bias",
             num_heads: int = 1,
             activation_att1: str = 'relu',
             activation_att2: str = 'relu',
@@ -84,7 +85,7 @@ class HybridConv_v2(MessagePassing):
             skip: bool = False,
             add_self_loops: bool = True,
             norm: str = 'gcn',
-            filter_norm: bool = False,
+            filter_norm_dim: bool = None,
             bias: bool = True,
             **kwargs
     ):
@@ -98,11 +99,12 @@ class HybridConv_v2(MessagePassing):
         self.channel_band = [channel for channel in channel_list if len(channel) == 2]
         self.radius_list = list(set([agg for channel in channel_list for agg in channel]))
         self.radius_list.sort()
+        self.combine_fn = combine_fn
         self.num_heads = num_heads
         self.skip = skip
         self.add_self_loops = add_self_loops
         self.norm = norm
-        self.filter_norm = filter_norm
+        self.filter_norm_dim = filter_norm_dim
         self.activation_att1 = ACTIVATION_DICT[activation_att1]
         self.activation_att2 = ACTIVATION_DICT[activation_att2]
         self.activation = ACTIVATION_DICT[activation]
@@ -126,6 +128,10 @@ class HybridConv_v2(MessagePassing):
                 m += 1
             if skip:
                 m += 1
+
+            if combine_fn == "att_bias":
+                m = 1
+                
             self.mlp_out = MLP([m * output_dim] + depth_mlp * [output_dim], bias=bias, activation=activation, norm=None)
         else:
             self.mlp_out = None
@@ -185,11 +191,19 @@ class HybridConv_v2(MessagePassing):
 
         for channel in self.channel_list:
             if len(channel) == 1:
-                x_channel_dict[str(channel)] = self.normalize_filter(x_agg_dict[channel[0]]) if self.filter_norm else x_agg_dict[channel[0]]
+                x_channel_dict[str(channel)] = self.normalize_filter(x_agg_dict[channel[0]], dim=self.filter_norm_dim)
             else:
-                x_channel_dict[str(channel)] = self.normalize_filter(x_agg_dict[channel[0]] - x_agg_dict[channel[1]]) if self.filter_norm else x_agg_dict[channel[0]] - x_agg_dict[channel[1]]
+                x_channel_dict[str(channel)] = self.normalize_filter(x_agg_dict[channel[0]] - x_agg_dict[channel[1]], dim=self.filter_norm_dim)
 
-        x = self.channel_attention(x_channel_dict)
+        if self.combine_fn == 'att':
+            x = torch.cat(self.channel_attention(x_channel_dict), dim=-1)
+        
+        elif self.combine_fn == 'att_bias':
+            bias = torch.stack(self.channel_attention(x_channel_dict), dim=-1).sum(dim=-1)
+            x = x + bias
+        
+        else:
+            raise ValueError('combine_fn not supported')
 
         if self.skip:
             x = torch.cat([x_agg_dict[0], x], dim=-1)
@@ -243,13 +257,19 @@ class HybridConv_v2(MessagePassing):
             combine.append(x_low)
         if x_band is not None:
             combine.append(x_band)
-        x = torch.cat(combine, dim=-1)
 
+        return combine
+    
+        # x = torch.cat(combine, dim=-1)
+
+        # return x
+
+    def normalize_filter(self, x: Tensor, dim: int = 1, eps: float = 1e-5) -> Tensor:
+        if dim in [0, 1]:
+            mean, var = x.mean(dim), x.var(dim)
+            x = (x - mean.unsqueeze(dim)) / torch.sqrt(var + eps).unsqueeze(dim)
+        
         return x
-
-    def normalize_filter(self, x: Tensor, eps: float = 1e-5) -> Tensor:
-        mean, var = x.mean(0), x.var(0)
-        return (x - mean) / torch.sqrt(var + eps)
 
     def __repr__(self) -> str:
         return (f'{self.__class__.__name__}({self.input_dim}, '
@@ -266,6 +286,7 @@ class HybridConvLayer(nn.Module):
             layer_config.dim_in,
             layer_config.dim_out,
             channel_list=cfg.gnn.hybrid_v2.channel_list,
+            combine_fn=cfg.gnn.hybrid.combine_fn,
             num_heads=cfg.gnn.hybrid_v2.num_heads,
             activation_att1=cfg.gnn.hybrid.activation_att1,
             activation_att2=cfg.gnn.hybrid.activation_att2,
@@ -274,7 +295,7 @@ class HybridConvLayer(nn.Module):
             skip=cfg.gnn.hybrid_v2.skip,
             add_self_loops=cfg.gnn.hybrid.add_self_loops,
             norm=cfg.gnn.hybrid.norm,
-            filter_norm=cfg.gnn.hybrid.filter_norm,
+            filter_norm_dim=cfg.gnn.hybrid.filter_norm_dim,
             bias=layer_config.has_bias,
             **kwargs
         )

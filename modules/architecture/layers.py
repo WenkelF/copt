@@ -7,6 +7,7 @@ ACTIVATION_DICT = {
     "relu": nn.ReLU(),
     "leaky_relu": nn.LeakyReLU(negative_slope=0.2),
     "elu": nn.ELU(),
+    "gelu": nn.GELU(),
     "none": None,
     "abs": torch.abs,
     "id": lambda x: x,

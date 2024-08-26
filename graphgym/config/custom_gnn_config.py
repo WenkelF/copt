@@ -20,10 +20,11 @@ def custom_gnn_cfg(cfg):
     cfg.gnn.last_act = None
     cfg.gnn.last_norm = None
 
+    cfg.gnn.hybrid_stack = 'concat'
 
     cfg.gnn.hybrid = CN()
     cfg.gnn.hybrid.channel_list = [[1], [2], [4], [0, 1], [1, 2], [2, 4]]
-    cfg.gnn.hybrid.combine_fn = 'cat'
+    cfg.gnn.hybrid.combine_fn = 'att_bias'
     cfg.gnn.hybrid.residual = True
     cfg.gnn.hybrid.activation_att1 = 'relu'
     cfg.gnn.hybrid.activation_att2 = 'relu'
@@ -31,7 +32,7 @@ def custom_gnn_cfg(cfg):
     cfg.gnn.hybrid.num_heads = 1
     cfg.gnn.hybrid.add_self_loops = True
     cfg.gnn.hybrid.norm = 'gcn'
-    cfg.gnn.hybrid.filter_norm = True
+    cfg.gnn.hybrid.filter_norm_dim = None
     
     cfg.gnn.hybrid_v2 = CN()
     cfg.gnn.hybrid_v2.channel_list = [[0], [1], [2], [4], [0, 1], [1, 2], [2, 4]]

@@ -1,0 +1,86 @@
+---
+out_dir: results
+dim_out: 1
+metric_best: mae
+num_workers: 4
+wandb:
+  use: True
+  name: test
+  project: copt-pyg
+  entity: semo
+dataset:
+  format: PyG-TUDataset
+  name: COLLAB
+  task: graph
+  # task_type: classification
+  split_mode: cv-kfold-5
+  split_dir: splits
+  node_encoder: false
+  node_encoder_name: GraphStats
+  node_encoder_bn: false
+  set_graph_stats: false
+  graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
+  multiprocessing: false
+  label: true
+posenc_LapPE:
+  enable: false
+  eigen:
+    laplacian_norm: none
+    eigvec_norm: L2
+    max_freqs: 4
+    skip_zero_freq: true
+    eigvec_abs: true
+  model: DeepSet
+  dim_pe: 32
+  layers: 2
+  n_heads: 4  # Only used when `posenc.model: Transformer`
+  raw_norm_type: none
+posenc_RWSE:
+  enable: false
+  kernel:
+    times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
+  model: Linear
+  dim_pe: 32
+  raw_norm_type: BatchNorm
+posenc_GraphStats:
+  enable: false
+  model: Linear
+  dim_pe: 32
+  raw_norm_type: none
+posenc_NormalRE:
+  enable: true
+  dim_pe: 16
+train:
+  mode: copt
+  # compile: True
+  task: maxclique
+  batch_size: 256
+  eval_period: 1
+  ckpt_period: 100
+  ckpt_best: true
+model:
+  type: gnn
+  loss_fun: maxclique_loss
+  edge_decoding: dot
+  graph_pooling: mean
+gnn:
+  head: copt_inductive_node
+  layers_pre_mp: 4
+  layers_mp: 12
+  layers_post_mp: 1
+  dim_inner: 256
+  layer_type: hybridconv
+  stage_type: skipsum
+  batchnorm: true
+  act: elu
+  last_act: sigmoid
+  dropout: 0.3
+  agg: mean
+  normalize_adj: false
+optim:
+  base_lr: 0.003
+  max_epoch: 20
+  optimizer: adamW
+  weight_decay: 1e-5
+  scheduler: cosine_with_warmup
+  num_warmup_epochs: 5

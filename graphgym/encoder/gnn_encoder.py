@@ -88,7 +88,7 @@ class GNNNodeEncoder(nn.Module):
 
         pecfg = cfg.posenc_GPSE
         norm_type = pecfg.raw_norm_type.lower()  # Raw PE normalization layer type
-        gpse_dim_out = cfg.share.pt_dim_out
+        gpse_dim_out = pecfg.inner_dim
         dim_pe = pecfg.dim_pe
         model_type = pecfg.model.lower()  # Encoder NN model type for PEs
         n_layers = pecfg.layers  # Num. layers in PE encoder model

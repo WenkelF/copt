@@ -66,7 +66,7 @@ def custom_set_out_dir(cfg, cfg_fname, name_tag):
             configuration file, specified in :obj:`cfg.name_tag`
     """
     run_name = os.path.splitext(os.path.basename(cfg_fname))[0]
-    run_name += f"-{name_tag}" if name_tag else ""
+    run_name += f"-{name_tag}" if name_tag else f"-{cfg.wandb.name}"
     cfg.out_dir = os.path.join(cfg.out_dir, run_name)
 
 

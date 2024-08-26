@@ -6,8 +6,8 @@ dim_out: 1
 wandb:
   use: True
   name: maxcut
-  project: co_expts
-  entity: wenkelf
+  project: copt-pyg
+  entity: semo
 dataset:
   format: ba
   name: small

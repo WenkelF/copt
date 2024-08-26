@@ -1,6 +1,7 @@
 numpy
 loguru
 PyYAML
+python-sat
 dwave_networkx
 dimod
 torch

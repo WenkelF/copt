@@ -6,7 +6,7 @@ dim_out: 1
 wandb:
   use: True
   name: mc
-  project: copt-pyg
+  project: copt-mc
   entity: semo
 dataset:
   format: rb
@@ -15,7 +15,7 @@ dataset:
   # task_type: classification
   split_mode: cv-kfold-5
   split_dir: splits
-  node_encoder: False
+  node_encoder: true
   node_encoder_name: GraphStats
   set_graph_stats: true
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
@@ -57,6 +57,7 @@ train:
   val_period: 1
   ckpt_period: 100
   ckpt_best: true
+  ckpt_monitor: size/valid
 model:
   type: gnn
   loss_fun: maxclique_loss
@@ -71,22 +72,26 @@ gnn:
   layer_type: gcnconv
   stage_type: skipsum
   batchnorm: true
-  act: relu
+  act: elu
   last_act: null
   last_norm: minmax
   dropout: 0.3
   agg: mean
   normalize_adj: false
+  hybrid:
+    activation_att1: elu
+    activation_att2: elu
+    activation: elu
 optim:
-  base_lr: 0.0001
-  max_epoch: 20
+  base_lr: 0.001
+  max_epoch: 10
   optimizer: adamW
   weight_decay: 1e-5
-  scheduler: cosine_with_warmup
+  scheduler: cos
   num_warmup_epochs: 5
 maxclique_loss:
   beta: 0.1
 metrics:
   maxclique:
     dec_length: 300
-    num_seeds: 4
+    num_seeds: 10
