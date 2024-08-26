@@ -1,5 +1,6 @@
 ---
 out_dir: results
+dim_out: 1
 metric_best: mae
 num_workers: 4
 wandb:

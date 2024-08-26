@@ -6,8 +6,8 @@ dim_out: 1
 wandb:
   use: True
   name: mds
-  project: co_expts
-  entity: wenkelf
+  project: copt-mds
+  entity: semo
 dataset:
   format: ba
   name: small

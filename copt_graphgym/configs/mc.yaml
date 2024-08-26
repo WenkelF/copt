@@ -6,7 +6,7 @@ dim_out: 1
 wandb:
   use: True
   name: mc
-  project: copt-pyg
+  project: copt-mc
   entity: semo
 dataset:
   format: rb
