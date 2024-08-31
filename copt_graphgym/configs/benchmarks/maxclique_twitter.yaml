@@ -18,7 +18,6 @@ dataset:
   node_encoder: false
   node_encoder_name: GraphStats
   node_encoder_bn: false
-  set_graph_stats: false
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
   multiprocessing: false
   label: true

@@ -122,7 +122,7 @@ def load_dataset_master(format, name, dataset_dir):
     """
     if format.startswith('PyG-'):
         tf_list = []
-        if cfg.dataset.set_graph_stats:
+        if cfg.posenc_GraphStats.enable:
             tf_list.append(compute_graph_stats)
         if cfg.train.task == 'maxcut':
             tf_list.append(set_maxcut)

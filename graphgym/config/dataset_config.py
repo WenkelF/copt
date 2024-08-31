@@ -30,7 +30,6 @@ def dataset_cfg(cfg):
     cfg.dataset.umg_test_ratio = 0.1
     cfg.dataset.umg_random_seed = 0  # for random indexing
 
-    cfg.dataset.set_graph_stats = False
     cfg.dataset.append_stats = False
     cfg.dataset.graph_stats = ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
 

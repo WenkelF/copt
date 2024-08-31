@@ -18,7 +18,6 @@ dataset:
   node_encoder: true
   node_encoder_name: NormalRE
   node_encoder_bn: false
-  set_graph_stats: false
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: false
   label: true
