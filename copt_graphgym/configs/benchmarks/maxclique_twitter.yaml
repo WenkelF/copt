@@ -6,8 +6,8 @@ num_workers: 4
 wandb:
   use: True
   name: test
-  project: copt-pyg
-  entity: semo
+  project: copt-maxclique-twitter
+  entity: guy-wolf
 dataset:
   format: PyG-SNAPDataset
   name: ego-twitter
@@ -15,7 +15,7 @@ dataset:
   # task_type: classification
   split_mode: cv-kfold-5
   split_dir: splits
-  node_encoder: false
+  node_encoder: true
   node_encoder_name: GraphStats
   node_encoder_bn: false
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
@@ -58,7 +58,7 @@ train:
   ckpt_period: 100
   ckpt_best: true
 model:
-  type: gnn
+  type: hybrid_gnn
   loss_fun: maxclique_loss
   edge_decoding: dot
   graph_pooling: mean
@@ -68,8 +68,8 @@ gnn:
   layers_mp: 12
   layers_post_mp: 1
   dim_inner: 256
-  layer_type: hybridconv
-  stage_type: skipsum
+  layer_type: hybridconv-v2
+  stage_type: skipsum_concat
   batchnorm: true
   act: elu
   last_act: sigmoid
