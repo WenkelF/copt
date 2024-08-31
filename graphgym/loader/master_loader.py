@@ -168,7 +168,7 @@ def load_dataset_master(format, name, dataset_dir):
             pre_tf_list = [set_maxcut, set_maxclique]
         tf_list = [T.Constant(), set_y]
 
-        if cfg.dataset.set_graph_stats:
+        if cfg.posenc_GraphStats.enable:
             pre_tf_list.append(compute_graph_stats)
 
         if format.startswith('er'):
@@ -191,7 +191,7 @@ def load_dataset_master(format, name, dataset_dir):
             pre_tf_list = [set_maxcut, set_maxclique]
         tf_list = [T.Constant(), set_y]
 
-        if cfg.dataset.set_graph_stats:
+        if cfg.posenc_GraphStats.enable:
             pre_tf_list.append(compute_graph_stats)
 
         dataset = SATLIB(dataset_dir, pre_transform=T.Compose(pre_tf_list))
