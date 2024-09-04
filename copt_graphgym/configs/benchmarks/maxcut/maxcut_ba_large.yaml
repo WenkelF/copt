@@ -5,11 +5,11 @@ num_workers: 4
 wandb:
   use: True
   name: test
-  project: copt-maxcut-ba-small
+  project: copt-maxcut-ba-large
   entity: guy-wolf
 dataset:
   format: ba
-  name: small
+  name: large
   task: graph
   # task_type: classification
   split_mode: cv-kfold-5
