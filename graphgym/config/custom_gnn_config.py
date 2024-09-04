@@ -20,6 +20,9 @@ def custom_gnn_cfg(cfg):
     cfg.gnn.last_act = None
     cfg.gnn.last_norm = None
 
+    cfg.gnn.graphnorm = False
+    cfg.gnn.norm_by_graph = False
+
     cfg.gnn.hybrid_stack = 'concat'
 
     cfg.gnn.hybrid = CN()
