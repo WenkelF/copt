@@ -79,6 +79,11 @@ gnn:
   dropout: 0.3
   agg: mean
   normalize_adj: false
+  hybrid:
+    activation_att1: elu
+    activation_att2: elu
+    activation: elu
+    combine_fn: att_bias
   hybrid_v2:
     skip: true
 optim:
