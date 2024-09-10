@@ -17,7 +17,6 @@ dataset:
   split_dir: splits
   node_encoder: true
   node_encoder_name: GraphStats
-  set_graph_stats: true
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
   label: false
