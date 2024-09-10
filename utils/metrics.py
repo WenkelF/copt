@@ -313,36 +313,40 @@ def plantedclique_acc_pyg(data):
     return torch.mean((pred.float() == data.y).float())
 
 
-def mds_size_pyg(data):
-
-    # eval = False
-    # if not eval:
-    #     return 0.
+def mds_size_pyg(data, mum_seeds: int = 3):
     
     data_list = data.to_data_list()
 
     ds_list = []
     for data in data_list:
-        p = deepcopy(data.x).squeeze()
         edge_index = add_self_loops(data.edge_index)[0]
         row, col = edge_index[0], edge_index[1]
 
-        ds = torch.zeros_like(data.x).squeeze()
-        # ds = (data.x >= 0.5).squeeze()
-        # p[ds] = - torch.inf
-       
-        t0 = time.time()
-        while not is_ds(ds, row, col):
-            idx = torch.argmax(p)
-            ds[idx] = True
-            p[idx] = - torch.inf
-            # if time.time() - t0 > 30:
-            #     break
+        mds_size_list = []
+        for skip in range(num_seeds):
+            ds = torch.zeros_like(data.x).squeeze()
+            p = deepcopy(data.x).squeeze()
+            
+            if skip > 0:
+                for _ in range(skip):
+                    idx = torch.argmax(p)
+                    p[idx] = - torch.inf
+        
+            t0 = time.time()
+            while not is_ds(ds, row, col):
+                if torch.max(p) == - torch.inf:
+                    break   # break in case skipping top nodes prohibits finding a ds; should prevent infinite loops
+                
+                idx = torch.argmax(p)
+                ds[idx] = True
+                p[idx] = - torch.inf
 
-        if is_ds(ds, row, col):
-            ds_list.append(ds.sum())
-        else:
-            ds_list.append(torch.nan)
+            if is_ds(ds, row, col):
+                mds_size_list.append(ds.sum())
+            else:
+                mds_size_list.append(len(p))    # this case should rarely happen (only if break is triggered above). But let's be conservative just in case and set the ds to the entire node set
+        
+        ds_list.append(min(mds_size_list))
 
     return torch.Tensor(ds_list).mean()
 
