@@ -1,9 +1,14 @@
-from typing import Union, Tuple, List, Dict, Any
 
+from typing import Union, Tuple, List, Dict, Any
+from functools import partial
+
+import numpy as np
 import torch
+from torch.multiprocessing import cpu_count
 
 import time
 
+from torch_geometric.graphgym.config import cfg
 from torch_geometric.data import Batch
 from torch_geometric.utils import unbatch, unbatch_edge_index,  add_self_loops, remove_self_loops
 from torch_scatter import scatter
@@ -11,6 +16,8 @@ from torch_scatter import scatter
 from torch_geometric.graphgym.register import register_loss
 
 from copy import deepcopy
+
+from graphgym.utils import parallelize_fn
 
 
 def accuracy(output, target):
@@ -69,13 +76,48 @@ def maxclique_ratio_pyg(batch, dec_length=300, num_seeds=1):
     return torch.Tensor(metric_list).mean()
 
 
+def get_csize(seed, data, dec_length):
+    order = torch.argsort(data.x, dim=0, descending=True)
+    c = torch.zeros_like(data.x)
+
+    edge_index = remove_self_loops(data.edge_index)[0]
+    src, dst = edge_index[0], edge_index[1]
+
+    c[order[seed]] = 1
+    for idx in range(seed, min(dec_length, data.num_nodes)):
+        c[order[idx]] = 1
+
+        cTWc = torch.sum(c[src] * c[dst])
+        if c.sum() ** 2 - cTWc - torch.sum(c ** 2) != 0:
+            c[order[idx]] = 0
+
+    return c.sum()
+
+def get_csize_np(seed, x, edge_index, num_nodes, dec_length):
+
+    order = np.argsort(-1*x, axis=0)
+    c = np.zeros_like(x)
+
+    edge_index = remove_self_loops(edge_index)[0]
+    src, dst = edge_index[0], edge_index[1]
+
+    c[order[seed]] = 1
+    for idx in range(seed, min(dec_length, num_nodes)):
+        c[order[idx]] = 1
+
+        cTWc = np.sum(c[src] * c[dst])
+        if np.sum(c) ** 2 - cTWc - np.sum(c ** 2) != 0:
+            c[order[idx]] = 0
+
+    return np.sum(c)
+
+
 def maxclique_decoder_pyg(batch, dec_length=300, num_seeds=1):
 
     data_list = batch.to_data_list()
 
     for data in data_list:
         c_size_list = []
-
         for seed in range(num_seeds):
 
             order = torch.argsort(data.x, dim=0, descending=True)
@@ -95,6 +137,20 @@ def maxclique_decoder_pyg(batch, dec_length=300, num_seeds=1):
             c_size_list.append(c.sum())
 
         data.c_size = max(c_size_list)
+
+    return Batch.from_data_list(data_list)
+
+def maxclique_decoder_pyg_parallel(batch, dec_length=300, num_seeds=1):
+
+    data_list = batch.to_data_list()
+
+    for data in data_list:
+        t0 = time.time()
+        with torch.multiprocessing.Pool(processes=cfg.num_workers) as pool:
+            c_size_list = pool.map(partial(get_csize, data=data, dec_length=dec_length), range(num_seeds))
+        data.c_size = max(c_size_list)
+        t1 = time.time()
+        print(t1-t0)
 
     return Batch.from_data_list(data_list)
 
@@ -313,38 +369,42 @@ def plantedclique_acc_pyg(data):
     return torch.mean((pred.float() == data.y).float())
 
 
-def mds_size_pyg(data):
+def mds_size_pyg(data, num_seeds: int = 1):
 
-    # eval = False
-    # if not eval:
-    #     return 0.
-    
-    data_list = data.to_data_list()
+     data_list = data.to_data_list()
 
-    ds_list = []
-    for data in data_list:
-        p = deepcopy(data.x).squeeze()
-        edge_index = add_self_loops(data.edge_index)[0]
-        row, col = edge_index[0], edge_index[1]
+     ds_list = []
+     for data in data_list:
+         edge_index = add_self_loops(data.edge_index)[0]
+         row, col = edge_index[0], edge_index[1]
 
-        ds = torch.zeros_like(data.x).squeeze()
-        # ds = (data.x >= 0.5).squeeze()
-        # p[ds] = - torch.inf
-       
-        t0 = time.time()
-        while not is_ds(ds, row, col):
-            idx = torch.argmax(p)
-            ds[idx] = True
-            p[idx] = - torch.inf
-            # if time.time() - t0 > 30:
-            #     break
+         mds_size_list = []
+         for skip in range(num_seeds):
+             ds = torch.zeros_like(data.x).squeeze()
+             p = deepcopy(data.x).squeeze()
 
-        if is_ds(ds, row, col):
-            ds_list.append(ds.sum())
-        else:
-            ds_list.append(torch.nan)
+             if skip > 0:
+                 for _ in range(skip):
+                     idx = torch.argmax(p)
+                     p[idx] = - torch.inf
 
-    return torch.Tensor(ds_list).mean()
+             t0 = time.time()
+             while not is_ds(ds, row, col):
+                 if torch.max(p) == - torch.inf:
+                     break   # break in case skipping top nodes prohibits finding a ds; should prevent infinite loops
+
+                 idx = torch.argmax(p)
+                 ds[idx] = True
+                 p[idx] = - torch.inf
+
+             if is_ds(ds, row, col):
+                 mds_size_list.append(ds.sum())
+             else:
+                 mds_size_list.append(len(p))    # this case should rarely happen (only if break is triggered above). But let's be conservative just in case and set the ds to the entire node set
+
+         ds_list.append(min(mds_size_list))
+
+     return torch.Tensor(ds_list).mean()
 
 
 def mds_acc_pyg(data):
