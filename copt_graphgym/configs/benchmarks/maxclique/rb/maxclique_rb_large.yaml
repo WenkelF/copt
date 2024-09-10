@@ -1,0 +1,102 @@
+---
+out_dir: results
+dim_out: 1
+metric_best: mae
+num_workers: 4
+wandb:
+  use: True
+  name: test
+  project: copt-maxclique-rb-large
+  entity: guy-wolf
+dataset:
+  format: rb
+  name: large
+  task: graph
+  # task_type: classification
+  split_mode: cv-kfold-5
+  split_dir: splits
+  node_encoder: true
+  node_encoder_name: GraphStats
+  node_encoder_bn: false
+  graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
+  multiprocessing: false
+  label: false
+posenc_LapPE:
+  enable: false
+  eigen:
+    laplacian_norm: none
+    eigvec_norm: L2
+    max_freqs: 4
+    skip_zero_freq: true
+    eigvec_abs: true
+  model: DeepSet
+  dim_pe: 32
+  layers: 2
+  n_heads: 4  # Only used when `posenc.model: Transformer`
+  raw_norm_type: none
+posenc_RWSE:
+  enable: false
+  kernel:
+    times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
+  model: Linear
+  dim_pe: 32
+  raw_norm_type: BatchNorm
+posenc_GraphStats:
+  enable: true
+  model: Linear
+  dim_pe: 32
+  raw_norm_type: none
+posenc_NormalRE:
+  enable: false
+  dim_pe: 32
+train:
+  mode: copt
+  # compile: True
+  task: maxclique
+  batch_size: 512
+  eval_period: 1
+  ckpt_period: 100
+  ckpt_best: true
+model:
+  type: hybrid_gnn
+  loss_fun: maxclique_loss
+  edge_decoding: dot
+  graph_pooling: mean
+gnn:
+  head: copt_inductive_node
+  layers_pre_mp: 1
+  layers_mp: 20
+  layers_post_mp: 2
+  dim_inner: 32
+  layer_type: hybridconv-v2
+  stage_type: stack_concat
+  batchnorm: true
+  graphnorm: false
+  l2norm: false
+  norm_by_graph: false
+  act: lrelu_001
+  last_act: null
+  last_norm: minmax
+  dropout: 0.3
+  agg: mean
+  normalize_adj: false
+  hybrid:
+    activation_att1: gelu
+    activation_att2: gelu
+    activation: gelu
+    combine_fn: att_bias
+  hybrid_v2:
+    skip: true
+optim:
+  base_lr: 0.001
+  max_epoch: 10
+  optimizer: adamW
+  weight_decay: 0.0
+  scheduler: cosine_with_warmup
+  num_warmup_epochs: 5
+maxclique_loss:
+  beta: 0.1
+metrics:
+  maxclique:
+    dec_length: 300
+    num_seeds: 10
