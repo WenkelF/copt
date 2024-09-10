@@ -64,7 +64,7 @@ model:
   graph_pooling: mean
 gnn:
   head: copt_inductive_node
-  layers_pre_mp: 1
+  layers_pre_mp: 4
   layers_mp: 16
   layers_post_mp: 1
   dim_inner: 32
@@ -79,11 +79,16 @@ gnn:
   dropout: 0.3
   agg: mean
   normalize_adj: false
+  hybrid:
+    activation_att1: elu
+    activation_att2: elu
+    activation: elu
+    combine_fn: att_bias
   hybrid_v2:
     skip: true
 optim:
   base_lr: 0.001
-  max_epoch: 200
+  max_epoch: 400
   optimizer: adam
   weight_decay: 1e-5
   scheduler: cosine_with_warmup
