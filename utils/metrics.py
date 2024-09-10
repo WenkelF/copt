@@ -370,7 +370,8 @@ def plantedclique_acc_pyg(data):
 
 
 def mds_size_pyg(data, num_seeds: int = 1):
-
+     if not cfg.test:
+         num_seeds = 1
      data_list = data.to_data_list()
 
      ds_list = []
