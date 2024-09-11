@@ -25,6 +25,7 @@ def loss_param_cfg(cfg):
     cfg.metrics.maxclique.num_seeds = 1
 
     cfg.metrics.mds = CN()
+    cfg.metrics.mds.enable = True
     cfg.metrics.mds.num_seeds = 1
 
     cfg.metrics.mis = CN()
