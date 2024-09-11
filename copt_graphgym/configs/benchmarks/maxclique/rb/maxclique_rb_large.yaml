@@ -73,7 +73,7 @@ gnn:
   batchnorm: true
   graphnorm: false
   l2norm: false
-  norm_by_graph: false
+  norm_by_graph: true
   act: lrelu_001
   last_act: null
   last_norm: minmax
