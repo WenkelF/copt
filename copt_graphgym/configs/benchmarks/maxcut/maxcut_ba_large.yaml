@@ -72,7 +72,7 @@ gnn:
   stage_type: stack_concat
   batchnorm: true
   graphnorm: false
-  l2norm: false
+  l2norm: true
   norm_by_graph: false
   act: lrelu_03
   last_act: sigmoid

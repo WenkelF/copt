@@ -95,3 +95,6 @@ optim:
   weight_decay: 1e-5
   scheduler: cosine_with_warmup
   num_warmup_epochs: 5
+metrics:
+  mds:
+    num_seeds: 10
