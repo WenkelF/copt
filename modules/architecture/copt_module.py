@@ -65,6 +65,7 @@ class COPTModule(GraphGymModule):
         return eval_dict
 
     def test_step(self, batch, *args, **kwargs):
+        cfg.test = True
         out = self.forward(batch)
         loss = self.loss_func(batch)
         step_end_time = time.time()

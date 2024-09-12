@@ -368,10 +368,10 @@ def plantedclique_acc_pyg(data):
 
 
 def mds_size_pyg(data, num_seeds: int = 1, enable: bool = True):
-    if not enable:
-        return torch.tensor(float('nan'))
     if not cfg.test:
         num_seeds = 1
+        if not enable:
+            return torch.tensor(float('nan'))
 
     data_list = data.to_data_list()
 
