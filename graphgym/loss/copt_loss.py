@@ -8,16 +8,29 @@ from torch_geometric.graphgym.register import register_loss
 
 from torch_scatter import scatter
 
-from copy import deepcopy
+
+def entropy(output):
+    return 0
 
 
-def accuracy(output, target):
+### MAXCLIQUE ###
 
-    return torch.mean((output.argmax(-1) == target).float())
+@register_loss("maxclique_loss")
+def maxclique_loss_pyg(batch, beta=0.1):
+    data_list = batch.to_data_list()
+
+    loss = 0.0
+    for data in data_list:
+        src, dst = data.edge_index[0], data.edge_index[1]
+
+        loss1 = torch.sum(data.x[src] * data.x[dst])
+        loss2 = data.x.sum() ** 2 - loss1 - torch.sum(data.x ** 2)
+        loss += (- loss1 + beta * loss2) * data.num_nodes
+
+    return loss / batch.size(0)
 
 
 def maxclique_loss(output, data, beta=0.1):
-
     adj = data.get('adj')
 
     loss1 = torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output))
@@ -26,50 +39,19 @@ def maxclique_loss(output, data, beta=0.1):
     return - loss1.sum() + beta * loss2.sum()
 
 
-def maxclique_ratio(output, data, dec_length=300):
-
-    adj = data.get('adj')
-    num_nodes = data.get('num_nodes')
-    c = maxclique_decoder(output, adj, num_nodes, dec_length=dec_length)
-
-    target = data.get('mc_size')
-
-    return torch.mean(c.sum(-1) / target)
-
-
-def maxclique_decoder(output, adj, num_nodes, dec_length=300):
-
-    order = [torch.argsort(output[sample_idx][:num_nodes[sample_idx]], dim=0, descending=True) for sample_idx in range(output.size(0))]
-    c = torch.zeros_like(output)
-
-    for sample_idx in range(output.size(0)):
-        c[sample_idx][order[sample_idx][0]] = 1
-
-        for i in range(1, min(dec_length, num_nodes[sample_idx])):
-            c[sample_idx][order[sample_idx][i]] = 1
-
-            cTWc = torch.matmul(c[sample_idx].transpose(-1, -2), torch.matmul(adj[sample_idx], c[sample_idx]))
-            if c[sample_idx].sum() ** 2 - cTWc - torch.sum(c[sample_idx] ** 2) != 0:
-                c[sample_idx][order[sample_idx][i]] = 0
-
-    return c.squeeze(-1)
-
-
-def maxbipartite_loss(output, adj, beta):
-
-    return maxclique_loss(output, torch.matrix_power(adj, 2), beta)
-
-
-def maxbipartite_decoder(output, adj, dec_length):
-
-    return maxclique_decoder(output, torch.matrix_power(adj, 2), dec_length)
+### MAXCUT ###
 
 @register_loss("maxcut_loss")
 def maxcut_loss_pyg(data):
     x = (data.x - 0.5) * 2
     src, dst = data.edge_index[0], data.edge_index[1]
-
     return torch.sum(x[src] * x[dst]) / len(data.batch.unique())
+
+
+def maxcut_loss(data):
+    x = (data['x'] - 0.5) * 2
+    adj = data['adj_mat']
+    return torch.matmul(x.transpose(-1, -2), torch.matmul(adj, x)).mean()
 
 
 @register_loss("maxcut_mae")
@@ -90,35 +72,7 @@ def maxcut_mae_pyg(data):
     return 0.5 * torch.Tensor(ae_list).abs().mean()
 
 
-def maxcut_acc_pyg(data):
-
-    x = (data.x > 0.5).float()
-    x = (x - 0.5) * 2
-    y = data.cut_binary
-    y = (y - 0.5) * 2
-
-    x_list = unbatch(x, data.batch)
-    y_list = unbatch(y, data.batch)
-    edge_index_list = unbatch_edge_index(data.edge_index, data.batch)
-
-    comparison_list = []
-    for x, y, edge_index in zip(x_list, y_list, edge_index_list):
-        x_cut = torch.sum(x[edge_index[0]] * x[edge_index[1]] == -1.0)
-        y_cut = torch.sum(y[edge_index[0]] * y[edge_index[1]] == -1.0)
-        comparison_list.append(x_cut >= y_cut)
-
-    return torch.Tensor(comparison_list).mean()
-
-
-def maxcut_loss(data):
-    x = (data['x'] - 0.5) * 2
-    adj = data['adj_mat']
-    
-    return torch.matmul(x.transpose(-1, -2), torch.matmul(adj, x)).mean()
-
-
 def maxcut_mae(data):
-
     output = (data['x'] > 0.5).double()
     target = torch.nan_to_num(data['cut_binary'])
 
@@ -140,57 +94,28 @@ def maxcut_mae(data):
     return torch.mean(torch.abs(pred_size - target_size))
 
 
-def maxcut_acc(data):
-
-    adj = data['adj']
-    adj_weight = adj.sum(-1).sum(-1)
-    target_size = adj_weight.clone()
-    pred_size = adj_weight.clone()
-
-    target = torch.nan_to_num(data['cut_binary'])
-    target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
-    target = 1 - target
-    target_size -= torch.matmul(target.transpose(-1, -2), torch.matmul(adj, target)).squeeze()
-    target_size /= 2
-
-    output = (data['x'] > 0.5).float()
-    pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
-    output = 1 - output
-    pred_size -= torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).squeeze()
-    pred_size /= 2
-
-    return (pred_size >= target_size).float().mean()
-
+### COLORING ###
 
 def color_loss(output, adj):
-
     output = (output - 0.5) * 2
 
     return torch.matmul(output.transpose(-1, -2), torch.matmul(adj, output)).diagonal(dim1=-1, dim2=-2).sum() - 4 * torch.abs(output).sum()
 
 
-def color_acc(output, adj, deg_vect):
-
-    output = (output - 0.5) * 2
-
-    one_hot = output > 0
-    bin_enc = (one_hot.float() - 0.5) * 2
-
-    return (torch.matmul(bin_enc.transpose(-1, -2), torch.matmul(adj, bin_enc)).diagonal(dim1=-1, dim2=-2).sum(-1) / deg_vect).mean()
-
+### PLANTEDCLIQUE ###
 
 from torch.nn import BCEWithLogitsLoss
 ce_loss = BCEWithLogitsLoss()
 
 @register_loss("plantedclique_loss")
 def plantedclique_loss_pyg(data):
-
     return ce_loss(data.x, data.y.unsqueeze(-1))
 
 
+### MDS ###
+
 @register_loss("mds_loss")
 def mds_loss_pyg(data, beta=1.0):
-
     batch_size = data.batch.max() + 1.0
     
     p = data.x.squeeze()
@@ -207,6 +132,8 @@ def mds_loss_pyg(data, beta=1.0):
 
     return loss / batch_size
 
+
+### MIS ###
 
 # @register_loss("mis_loss")
 # def mis_loss_pyg(data, beta=1.0, k=2, eps=1e-1):
@@ -232,7 +159,6 @@ def mds_loss_pyg(data, beta=1.0):
 
 @register_loss("mis_loss")
 def mis_loss_pyg(batch, beta=0.1):
-
     data_list = batch.to_data_list()
 
     loss = 0.0
@@ -244,3 +170,9 @@ def mis_loss_pyg(batch, beta=0.1):
         loss += (- loss2 + beta * loss1) * data.num_nodes
 
     return loss / batch.size(0)
+
+
+### MAXBIPARTITE ###
+
+def maxbipartite_loss(output, adj, beta):
+    return maxclique_loss(output, torch.matrix_power(adj, 2), beta)
