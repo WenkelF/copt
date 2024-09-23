@@ -355,10 +355,7 @@ def color_acc(output, adj, deg_vect):
     one_hot = output > 0
     bin_enc = (one_hot.float() - 0.5) * 2
 
-    return (torch.matmul(bin_enc.transpose(-1, -2),
-                         torch.matmul(adj, bin_enc)).diagonal(dim1=-1,
-                                                              dim2=-2).sum(
-        -1) / deg_vect).mean()
+    return (torch.matmul(bin_enc.transpose(-1, -2), torch.matmul(adj, bin_enc)).diagonal(dim1=-1, dim2=-2).sum(-1) / deg_vect).mean()
 
 
 def plantedclique_acc_pyg(data):
@@ -393,7 +390,7 @@ def mds_size_pyg(data, num_seeds: int = 1, enable: bool = True):
             t0 = time.time()
             while not is_ds(ds, row, col):
                 if torch.max(p) == - torch.inf:
-                    break  # break in case skipping top nodes prohibits finding a ds; should prevent infinite loops
+                    break   # break in case skipping top nodes prohibits finding a ds; should prevent infinite loops
 
                 idx = torch.argmax(p)
                 ds[idx] = True
@@ -402,8 +399,7 @@ def mds_size_pyg(data, num_seeds: int = 1, enable: bool = True):
             if is_ds(ds, row, col):
                 mds_size_list.append(ds.sum())
             else:
-                mds_size_list.append(
-                    len(p))  # this case should rarely happen (only if break is triggered above). But let's be conservative just in case and set the ds to the entire node set
+                mds_size_list.append(len(p))    # this case should rarely happen (only if break is triggered above). But let's be conservative just in case and set the ds to the entire node set
 
         ds_list.append(min(mds_size_list))
 
