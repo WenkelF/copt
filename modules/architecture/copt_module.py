@@ -50,8 +50,10 @@ class COPTModule(GraphGymModule):
         out = self.forward(batch)
         loss = self.loss_func(batch)
 
-        tau = cfg.optim.entropy.base_temp / (1.0 + self.alpha * self.current_epoch)
-        H = tau * entropy(out)
+        if cfg.optim.entropy.enable:
+            tau = cfg.optim.entropy.base_temp / (1.0 + self.alpha * self.current_epoch)
+            H = tau * entropy(out)
+            # TODO: add/subtract H w loss
 
         step_end_time = time.time()
         self.log("loss/train", loss, batch_size=batch.batch_size, on_step=True, prog_bar=True, logger=True)

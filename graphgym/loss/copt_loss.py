@@ -10,6 +10,7 @@ from torch_scatter import scatter
 
 
 def entropy(output):
+    # TODO: compute
     return 0
 
 
