@@ -13,6 +13,7 @@ from torch_geometric.graphgym.model_builder import GraphGymModule
 from torch_geometric.graphgym.optim import create_optimizer, create_scheduler
 from torch_geometric.graphgym.register import network_dict
 
+from graphgym.loss.copt_loss import entropy
 from modules.utils.spaces import OPTIMIZER_DICT, LOSS_FUNCTION_DICT, EVAL_FUNCTION_DICT, EVAL_FUNCTION_DICT_NOLABEL
 
 
@@ -24,6 +25,7 @@ class COPTModule(GraphGymModule):
         loss_func = register.loss_dict[cfg.model.loss_fun]
         loss_params = cfg[cfg.model.loss_fun]
         self.loss_func = partial(loss_func, **loss_params)
+        self.alpha = (cfg.optim.entropy.base_temp / cfg.optim.entropy.min_temp - 1) / cfg.optim.max_epoch
 
         # Eval function
         if not cfg.dataset.label:
@@ -47,6 +49,10 @@ class COPTModule(GraphGymModule):
         batch.split = "train"
         out = self.forward(batch)
         loss = self.loss_func(batch)
+
+        tau = cfg.optim.entropy.base_temp / (1.0 + self.alpha * self.current_epoch)
+        H = tau * entropy(out)
+
         step_end_time = time.time()
         self.log("loss/train", loss, batch_size=batch.batch_size, on_step=True, prog_bar=True, logger=True)
         return dict(loss=loss, step_end_time=step_end_time)
