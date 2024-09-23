@@ -20,6 +20,14 @@ class SWISH(nn.Module):
             return x * torch.sigmoid(x)
 
 
+class LinearAct(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return x
+
+
 class Sigmoid(nn.Module):
     def __init__(self):
         super().__init__()
@@ -45,7 +53,9 @@ def minmax_norm_pyg(data):
 
 
 register_act('swish', partial(SWISH, inplace=cfg.mem.inplace))
+register_act('lrelu_001', partial(nn.LeakyReLU, 0.01, inplace=cfg.mem.inplace))
 register_act('lrelu_03', partial(nn.LeakyReLU, 0.3, inplace=cfg.mem.inplace))
+register_act('linear', LinearAct)
 
 # Add Gaussian Error Linear Unit (GELU).
 register_act('gelu', nn.GELU)

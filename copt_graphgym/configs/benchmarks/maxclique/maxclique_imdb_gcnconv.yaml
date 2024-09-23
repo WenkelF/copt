@@ -64,25 +64,23 @@ model:
   graph_pooling: mean
 gnn:
   head: copt_inductive_node
-  layers_pre_mp: 4
-  layers_mp: 12
-  layers_post_mp: 1
-  dim_inner: 256
-  layer_type: hybridconv-v2
+  layers_pre_mp: 0
+  layers_mp: 2
+  layers_post_mp: 2
+  dim_inner: 32
+  layer_type: gcnconv
   stage_type: skipsum_concat
   batchnorm: true
-  act: linear
+  act: relu
   last_act: null
   last_norm: minmax
-  dropout: 0.3
+  dropout: 0.0
   agg: mean
   normalize_adj: false
-  hybrid_v2:
-    skip: false
 optim:
-  base_lr: 0.003
+  base_lr: 0.001
   max_epoch: 30
   optimizer: adamW
-  weight_decay: 1e-5
+  weight_decay: 0.0
   scheduler: cosine_with_warmup
   num_warmup_epochs: 5

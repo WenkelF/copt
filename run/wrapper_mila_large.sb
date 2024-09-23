@@ -10,7 +10,7 @@ hostname
 pwd
 
 module load anaconda/3 cuda/11.8
-conda activate copt
+conda activate combopt
 
 cd $SLURM_SUBMIT_DIR
 pwd

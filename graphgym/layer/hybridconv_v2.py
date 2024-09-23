@@ -126,11 +126,14 @@ class HybridConv_v2(MessagePassing):
                 m += 1
             if len(self.channel_band) > 0:
                 m += 1
-            if skip:
-                m += 1
 
             if combine_fn == "att_bias":
                 m = 1
+
+            if skip:
+                m += 1
+
+
                 
             self.mlp_out = MLP([m * output_dim] + depth_mlp * [output_dim], bias=bias, activation=activation, norm=None)
         else:

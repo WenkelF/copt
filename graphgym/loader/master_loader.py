@@ -122,7 +122,7 @@ def load_dataset_master(format, name, dataset_dir):
     """
     if format.startswith('PyG-'):
         tf_list = []
-        if cfg.dataset.set_graph_stats:
+        if cfg.posenc_GraphStats.enable:
             tf_list.append(compute_graph_stats)
         if cfg.train.task == 'maxcut':
             tf_list.append(set_maxcut)
@@ -168,7 +168,7 @@ def load_dataset_master(format, name, dataset_dir):
             pre_tf_list = [set_maxcut, set_maxclique]
         tf_list = [T.Constant(), set_y]
 
-        if cfg.dataset.set_graph_stats:
+        if cfg.posenc_GraphStats.enable:
             pre_tf_list.append(compute_graph_stats)
 
         if format.startswith('er'):
@@ -191,7 +191,7 @@ def load_dataset_master(format, name, dataset_dir):
             pre_tf_list = [set_maxcut, set_maxclique]
         tf_list = [T.Constant(), set_y]
 
-        if cfg.dataset.set_graph_stats:
+        if cfg.posenc_GraphStats.enable:
             pre_tf_list.append(compute_graph_stats)
 
         dataset = SATLIB(dataset_dir, pre_transform=T.Compose(pre_tf_list))
@@ -713,15 +713,16 @@ def compute_graph_stats(data):
         g = g.to_undirected()
     # Derive adjacency matrix
     adj = torch.from_numpy(nx.to_numpy_array(g))
+    norm_factor = np.sqrt(g.number_of_nodes()) if cfg.gnn.norm_by_graph else 1
 
     if 'degree' in cfg.dataset.graph_stats:
-        data.degree = compute_degrees(adj, log_transform=True)[0]
+        data.degree = compute_degrees(adj, log_transform=True)[0] / norm_factor
     if 'eccentricity' in cfg.dataset.graph_stats:
-        data.eccentricity = compute_eccentricity(g)[0]
+        data.eccentricity = compute_eccentricity(g)[0] / norm_factor
     if 'cluster_coefficient' in cfg.dataset.graph_stats:
-        data.cluster_coefficient = compute_cluster_coefficient(g)[0]
+        data.cluster_coefficient = compute_cluster_coefficient(g)[0] / norm_factor
     if 'triangle_count' in cfg.dataset.graph_stats:
-        data.triangle_count = compute_triangle_count(g)[0]
+        data.triangle_count = compute_triangle_count(g)[0] / norm_factor
 
     return data
 

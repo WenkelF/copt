@@ -6,8 +6,8 @@ dim_out: 1
 wandb:
   use: True
   name: mc
-  project: copt-mc
-  entity: semo
+  project: copt-maxclique-rb
+  entity: guy-wolf
 dataset:
   format: rb
   name: small
@@ -17,10 +17,9 @@ dataset:
   split_dir: splits
   node_encoder: true
   node_encoder_name: GraphStats
-  set_graph_stats: true
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
-  label: true
+  label: false
 posenc_LapPE:
   enable: false
   eigen:
@@ -42,7 +41,7 @@ posenc_RWSE:
   dim_pe: 32
   raw_norm_type: BatchNorm
 posenc_GraphStats:
-  enable: false
+  enable: true
   model: Linear
   dim_pe: 32
   raw_norm_type: none
@@ -82,6 +81,8 @@ gnn:
     activation_att1: elu
     activation_att2: elu
     activation: elu
+  hybrid_v2:
+    skip: true
 optim:
   base_lr: 0.001
   max_epoch: 10

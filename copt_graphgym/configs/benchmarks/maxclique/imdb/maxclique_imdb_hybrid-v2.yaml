@@ -19,6 +19,7 @@ dataset:
   node_encoder_name: GraphStats
   node_encoder_bn: false
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
+  # graph_stats_norm: true
   multiprocessing: false
   label: true
 posenc_LapPE:
@@ -53,36 +54,43 @@ train:
   mode: copt
   # compile: True
   task: maxclique
-  batch_size: 256
+  batch_size: 1024
   eval_period: 1
   ckpt_period: 100
   ckpt_best: true
 model:
-  type: gnn
+  type: hybrid_gnn
   loss_fun: maxclique_loss
   edge_decoding: dot
   graph_pooling: mean
 gnn:
   head: copt_inductive_node
-  layers_pre_mp: 4
-  layers_mp: 12
-  layers_post_mp: 1
-  dim_inner: 256
+  layers_pre_mp: 0
+  layers_mp: 2
+  layers_post_mp: 2
+  dim_inner: 32
   layer_type: hybridconv-v2
   stage_type: skipsum_concat
-  batchnorm: true
-  act: linear
+  batchnorm: false
+  graphnorm: false
+  l2norm: false
+  norm_by_graph: false
+  act: lrelu_001
   last_act: null
   last_norm: minmax
-  dropout: 0.3
+  dropout: 0.0
   agg: mean
   normalize_adj: false
   hybrid_v2:
     skip: false
 optim:
-  base_lr: 0.003
-  max_epoch: 30
+  base_lr: 0.001
+  max_epoch: 10
   optimizer: adamW
-  weight_decay: 1e-5
+  weight_decay: 0.0
   scheduler: cosine_with_warmup
   num_warmup_epochs: 5
+metrics:
+  maxclique:
+    dec_length: 300
+    num_seeds: 3

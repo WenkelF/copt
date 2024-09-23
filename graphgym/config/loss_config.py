@@ -17,11 +17,16 @@ def loss_param_cfg(cfg):
     # cfg.mis_loss.k = 2
 
     cfg.plantedclique_loss = CN()
-    cfg.metrics = CN()
-    cfg.metrics.maxclique = CN()
 
+    cfg.metrics = CN()
+
+    cfg.metrics.maxclique = CN()
     cfg.metrics.maxclique.dec_length = 300
     cfg.metrics.maxclique.num_seeds = 1
+
+    cfg.metrics.mds = CN()
+    cfg.metrics.mds.enable = True
+    cfg.metrics.mds.num_seeds = 1
 
     cfg.metrics.mis = CN()
     cfg.metrics.mis.dec_length = 100

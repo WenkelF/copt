@@ -20,7 +20,7 @@ dataset:
   node_encoder_bn: false
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: false
-  label: true
+  label: false
 posenc_LapPE:
   enable: false
   eigen:
@@ -35,14 +35,14 @@ posenc_LapPE:
   n_heads: 4  # Only used when `posenc.model: Transformer`
   raw_norm_type: none
 posenc_RWSE:
-  enable: false
+  enable: true
   kernel:
     times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
   model: Linear
   dim_pe: 32
   raw_norm_type: BatchNorm
 posenc_GraphStats:
-  enable: true
+  enable: false
   model: Linear
   dim_pe: 16
   raw_norm_type: none
@@ -64,25 +64,33 @@ model:
   graph_pooling: mean
 gnn:
   head: copt_inductive_node
-  layers_pre_mp: 4
-  layers_mp: 12
-  layers_post_mp: 1
-  dim_inner: 256
-  layer_type: hybridconv-v2
+  layers_pre_mp: 1
+  layers_mp: 2
+  layers_post_mp: 2
+  dim_inner: 32
+  layer_type: hybridconv
   stage_type: skipsum_concat
   batchnorm: true
   act: linear
   last_act: null
   last_norm: minmax
-  dropout: 0.3
+  dropout: 0.0
   agg: mean
   normalize_adj: false
+  hybrid:
+    combine_fn: 'cat'
   hybrid_v2:
     skip: false
 optim:
-  base_lr: 0.003
-  max_epoch: 30
+  base_lr: 0.001
+  max_epoch: 20
   optimizer: adamW
-  weight_decay: 1e-5
+  weight_decay: 0.0
   scheduler: cosine_with_warmup
   num_warmup_epochs: 5
+maxclique_loss:
+  beta: 0.1
+metrics:
+  maxclique:
+    dec_length: 300
+    num_seeds: 10
