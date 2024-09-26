@@ -13,11 +13,11 @@ dataset:
   name: default
   task: graph
   # task_type: classification
-  split_mode: cv-kfold-5
+  split_mode: random
+  split: [0.975, 0.0125, 0.0125]
   split_dir: splits
   node_encoder: false
   node_encoder_name: RWSE
-  set_graph_stats: false
   graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
   label: false

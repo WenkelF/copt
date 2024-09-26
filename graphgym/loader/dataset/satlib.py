@@ -9,7 +9,7 @@ import csv
 import torch
 from tqdm import tqdm
 from torch_geometric.data import (InMemoryDataset, Data, download_url,
-                                  extract_zip)
+                                  extract_gz)
 from torch_geometric.utils import add_self_loops, from_networkx
 from torch_geometric.graphgym.config import cfg
 import numpy as np
@@ -47,17 +47,18 @@ class SATLIB(InMemoryDataset):
         self.data, self.slices = torch.load(self.processed_paths[0])
 
     def download(self):
-        shutil.rmtree(self.raw_dir)
-
         urls = []
         for clause in [403, 411, 418, 423, 429, 435, 441, 449]:
             for bsize in [10, 30, 50, 70, 90]:
                 urls.append(f'https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/CBS/CBS_k3_n100_m{clause}_b{bsize}.tar.gz')
 
-        paths = [download_url(u, self.root) for u in urls]
+        paths = [download_url(u, self.cbs_dir) for u in urls]
         for p in paths:
-            extract_zip(p, self.root)
-            os.unlink(p)
+            extract_gz(p, self.raw_dir)
+
+    @property
+    def cbs_dir(self) -> str:
+        return osp.join(self.root, 'SATLIB', 'cbs')
 
     @property
     def raw_dir(self) -> str:
