@@ -2,23 +2,21 @@
 out_dir: results
 metric_best: mae
 num_workers: 4
-dim_out: 1
 wandb:
   use: True
   name: test
-  project: copt-pyg
-  entity: semo
+  project: copt-maxcut-ba-small
+  entity: guy-wolf
 dataset:
-  format: SATLIB
-  name: default
+  format: Gset
+  name: small
   task: graph
   # task_type: classification
-  split_mode: random
-  split: [0.975, 0.0125, 0.0125]
+  split_mode: cv-kfold-5
   split_dir: splits
-  node_encoder: false
+  node_encoder: False
   node_encoder_name: RWSE
-  graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
+  graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
   label: false
 posenc_LapPE:
@@ -35,7 +33,7 @@ posenc_LapPE:
   n_heads: 4  # Only used when `posenc.model: Transformer`
   raw_norm_type: none
 posenc_RWSE:
-  enable: false
+  enable: true
   kernel:
     times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
   model: Linear
@@ -47,19 +45,19 @@ posenc_GraphStats:
   dim_pe: 32
   raw_norm_type: none
 posenc_NormalRE:
-  enable: true
+  enable: false
   dim_pe: 16
 train:
   mode: copt
   # compile: True
-  task: maxclique
+  task: maxcut
   batch_size: 256
   eval_period: 1
   ckpt_period: 100
   ckpt_best: true
 model:
   type: gnn
-  loss_fun: maxclique_loss
+  loss_fun: maxcut_loss
   edge_decoding: dot
   graph_pooling: mean
 gnn:
@@ -67,7 +65,7 @@ gnn:
   layers_pre_mp: 1
   layers_mp: 12
   layers_post_mp: 1
-  dim_inner: 64
+  dim_inner: 256
   layer_type: hybridconv
   stage_type: skipsum
   batchnorm: true
@@ -76,9 +74,11 @@ gnn:
   dropout: 0.3
   agg: mean
   normalize_adj: false
+  hybrid_v2:
+    skip: false
 optim:
   base_lr: 0.003
-  max_epoch: 300
+  max_epoch: 200
   optimizer: adamW
   weight_decay: 1e-5
   scheduler: cosine_with_warmup

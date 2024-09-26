@@ -101,7 +101,7 @@ def setup_random_split(dataset):
         raise ValueError(
             f"Three split ratios is expected for train/val/test, received "
             f"{len(split_ratios)} split ratios: {repr(split_ratios)}")
-    elif sum(split_ratios) != 1:
+    elif round(sum(split_ratios), 10) != 1:
         raise ValueError(
             f"The train/val/test split ratios must sum up to 1, input ratios "
             f"sum up to {sum(split_ratios):.2f} instead: {repr(split_ratios)}")

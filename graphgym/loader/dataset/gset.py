@@ -1,25 +1,19 @@
 import os
 import os.path as osp
 from torch.multiprocessing import cpu_count
-from pathlib import Path
-import shutil
 from loguru import logger
-import csv
 
 import torch
 from tqdm import tqdm
-from torch_geometric.data import (InMemoryDataset, Data, download_url,
-                                  extract_gz)
+from torch_geometric.data import InMemoryDataset, download_url
 from torch_geometric.utils import add_self_loops, from_networkx
 from torch_geometric.graphgym.config import cfg
-import numpy as np
 import networkx as nx
-from pysat.formula import CNF
 
 from graphgym.utils import parallelize_fn_tqdm, fun_pbar
 
 
-class SATLIB(InMemoryDataset):
+class Gset(InMemoryDataset):
     """
     Args:
         root (string): Root directory where the dataset should be saved.
@@ -37,9 +31,19 @@ class SATLIB(InMemoryDataset):
             final dataset. (default: :obj:`None`)
     """
 
-    def __init__(self, root, transform=None, pre_transform=None,
+    def __init__(self, name, root, transform=None, pre_transform=None,
                  pre_filter=None):
-        self.name = 'default'
+        self.idx_dict = {
+            'default': [*range(1, 68), 70, 72, 77, 81],
+            'small': [*range(1, 21)],
+            '1K': [43, 44, 45, 46, 47, 51, 52, 53, 54],
+            '2K': [*range(22, 42)],
+            'large': [*range(55, 68), 70, 72, 77, 81]
+        }
+        if name not in self.idx_dict.keys():
+            raise ValueError(f"Unrecognized dataset name {name!r}, available "
+                             f"options are: {self.idx_dict.keys()}")
+        self.name = name
         self.multiprocessing = cfg.dataset.multiprocessing
         if self.multiprocessing:
             self.num_workers = cfg.num_workers if cfg.num_workers > 0 else cpu_count()
@@ -47,89 +51,50 @@ class SATLIB(InMemoryDataset):
         self.data, self.slices = torch.load(self.processed_paths[0])
 
     def download(self):
-        urls = []
-        for clause in [403, 411, 418, 423, 429, 435, 441, 449]:
-            for bsize in [10, 30, 50, 70, 90]:
-                urls.append(f'https://www.cs.ubc.ca/~hoos/SATLIB/Benchmarks/SAT/CBS/CBS_k3_n100_m{clause}_b{bsize}.tar.gz')
-
-        paths = [download_url(u, self.cbs_dir) for u in urls]
-        for p in paths:
-            extract_gz(p, self.raw_dir)
-
-    @property
-    def cbs_dir(self) -> str:
-        return osp.join(self.root, 'SATLIB', 'cbs')
+        for gname in self.idx_dict['default']:
+            download_url(f'https://web.stanford.edu/~yyye/yyye/Gset/G{gname}', self.raw_dir)
 
     @property
     def raw_dir(self) -> str:
-        return osp.join(self.root, 'SATLIB', 'raw')
+        return osp.join(self.root, 'Gset', 'raw')
 
     @property
     def processed_dir(self) -> str:
-        return osp.join(self.root, 'SATLIB', 'processed')
+        return osp.join(self.root, 'Gset', 'processed')
 
     @property
     def raw_file_names(self):
         fnames = list()
-        with open(osp.join(self.root, 'SATLIB', 'files.csv'), newline='') as f:
-            for row in csv.reader(f):
-                fnames.append(row[0])
+        for gname in self.idx_dict['default']:
+            fnames.append(f'G{gname}')
         return fnames
 
     @property
     def processed_file_names(self):
         return ['data.pt']
 
-    def build_graph(self, cnf_file):
-        cnf = CNF(cnf_file)
-        nv = cnf.nv
-        clauses = list(filter(lambda x: x, cnf.clauses))
-        ind = {k: [] for k in np.concatenate([np.arange(1, nv + 1), -np.arange(1, nv + 1)])}
-        edges = []
-        for i, clause in enumerate(clauses):
-            a = clause[0]
-            b = clause[1]
-            c = clause[2]
-            aa = 3 * i + 0
-            bb = 3 * i + 1
-            cc = 3 * i + 2
-            ind[a].append(aa)
-            ind[b].append(bb)
-            ind[c].append(cc)
-            edges.append((aa, bb))
-            edges.append((aa, cc))
-            edges.append((bb, cc))
+    def build_graph(self, f):
+        G = nx.Graph()
 
-        for i in np.arange(1, nv + 1):
-            for u in ind[i]:
-                for v in ind[-i]:
-                    edges.append((u, v))
-
-        G = nx.from_edgelist(edges)
-
-        if cfg.satlib.gen_labels:
-            mis = self._call_gurobi_solver(G)
-            label_mapping = {vertex: int(vertex in mis) for vertex in G.nodes}
-            nx.set_node_attributes(G, values=label_mapping, name='label')
-
-        if cfg.satlib.weighted:
-            weight_mapping = {vertex: weight for vertex, weight in
-                              zip(G.nodes, self.random_weight(G.number_of_nodes()))}
-            nx.set_node_attributes(G, values=weight_mapping, name='weight')
+        with open(f, 'r') as file:
+            next(file)
+            for line in file:
+                node1, node2, weight = map(int, line.split())
+                G.add_edge(node1, node2, weight=weight)
 
         g_pyg = from_networkx(G)
         return g_pyg
 
     def process(self):
-        logger.info("Generating graphs...")
-        path_list = list(Path(self.raw_dir).rglob("*.cnf"))
+        logger.info("Processing graphs...")
+        path_list = [os.path.join(self.raw_dir, f'G{i}') for i in self.idx_dict[self.name]]
         if self.multiprocessing:
             logger.info(f"   num_processes={self.num_workers}")
             data_list = parallelize_fn_tqdm(path_list, self.build_graph, num_processes=self.num_workers)
         else:
             pbar = tqdm(total=len(list(path_list)))
             pbar.set_description(f'Graph generation')
-            data_list = [fun_pbar(self.build_graph, f, pbar) for f in Path(self.raw_dir).rglob("*.cnf")]
+            data_list = [fun_pbar(self.build_graph, f, pbar) for f in path_list]
 
         logger.info("pre transform data...")
         if self.pre_transform is not None:
