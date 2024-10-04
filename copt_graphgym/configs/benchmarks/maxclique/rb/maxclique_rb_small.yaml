@@ -6,8 +6,8 @@ num_workers: 4
 wandb:
   use: True
   name: test
-  project: copt-maxclique-rb
-  entity: guy-wolf
+  project: copt-maxclique-rb-anneal
+  entity: horoiste
 dataset:
   format: rb
   name: small
@@ -94,6 +94,11 @@ optim:
   weight_decay: 0.0
   scheduler: cosine_with_warmup
   num_warmup_epochs: 5
+  entropy:
+    enable: true
+    scheduler: linear-energy
+    base_temp: 1.0
+    min_temp: 0.001
 maxclique_loss:
   beta: 0.1
 metrics:

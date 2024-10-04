@@ -9,9 +9,11 @@ from torch_geometric.graphgym.register import register_loss
 from torch_scatter import scatter
 
 
-def entropy(output):
-    # TODO: compute
-    return 0
+def entropy(output, epsilon=1e-8):
+    batch_size = output.batch.unique().size(0)
+    p = output.x.squeeze()
+    entropy = - (p * torch.log(p + epsilon) + (1 - p) * torch.log(1 - p + epsilon)).sum()
+    return entropy / batch_size
 
 
 ### MAXCLIQUE ###

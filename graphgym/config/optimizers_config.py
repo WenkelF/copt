@@ -35,8 +35,9 @@ def extended_optim_cfg(cfg):
     
     cfg.optim.entropy = CN()
     cfg.optim.entropy.enable = False
+    cfg.optim.entropy.scheduler = "linear-energy"
     cfg.optim.entropy.base_temp = 1.0
     cfg.optim.entropy.min_temp = 0.001
 
-    cfg.optim.train_mode = cfg.train.mode
-    cfg.optim.eval_period = cfg.train.val_period
+    # cfg.optim.train_mode = cfg.train.mode
+    cfg.optim.eval_period = cfg.train.eval_period

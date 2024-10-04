@@ -5,8 +5,8 @@ num_workers: 4
 wandb:
   use: True
   name: test
-  project: copt-maxcut-ba-small
-  entity: guy-wolf
+  project: copt-maxcut-ba-small-anneal
+  entity: horoiste
 dataset:
   format: ba
   name: small
@@ -93,3 +93,8 @@ optim:
   weight_decay: 1e-5
   scheduler: cosine_with_warmup
   num_warmup_epochs: 50
+  entropy:
+    enable: false
+    scheduler: linear-energy
+    base_temp: 1.0
+    min_temp: 0.001
