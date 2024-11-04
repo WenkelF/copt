@@ -68,10 +68,10 @@ class DiracRENodeEncoder(RandomNodeEncoder):
     def __init__(self, dim_emb, expand_x: bool = False):
         super().__init__(dim_emb, expand_x)
         device = get_device(cfg.posenc_GPSE.accelerator, cfg.accelerator)
-        self.encoder = torch.nn.Linear(cfg.posenc_DiracRE.dim_pe, dim_emb).to(device)
+        self.encoder = torch.nn.Linear(cfg.posenc_DiracFixedRE.dim_pe, dim_emb).to(device)
 
     def generator(self, num_nodes: int, device: str) -> torch.Tensor:
-        zeros = torch.zeros(num_nodes, cfg.posenc_DiracRE.dim_pe)
+        zeros = torch.zeros(num_nodes, cfg.posenc_DiracFixedRE.dim_pe)
         rand_idx = torch.randint(low=0, high=num_nodes, size=())
         zeros[rand_idx] = 1
         out = self.encoder(zeros.float().to(device))

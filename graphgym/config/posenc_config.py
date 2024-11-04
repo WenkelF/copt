@@ -22,13 +22,14 @@ def set_cfg_posenc(cfg):
     cfg.randenc_NormalSE = CN()
     cfg.randenc_UniformSE = CN()
     cfg.randenc_BernoulliSE = CN()
+    cfg.randenc_DiracRE = CN()
 
     # TODO: replace The aboves with the followings
     cfg.posenc_NormalRE = CN()
     cfg.posenc_NormalFixedRE = CN()
     cfg.posenc_UniformRE = CN()
     cfg.posenc_BernoulliRE = CN()
-    cfg.posenc_DiracRE = CN()
+    cfg.posenc_DiracFixedRE = CN()
 
     # Argument group for each Graph Encoding class.
     cfg.graphenc_CycleGE = CN()
@@ -146,8 +147,11 @@ def set_cfg_posenc(cfg):
     cfg.randenc_BernoulliSE.threshold = 0.5
     cfg.randenc_BernoulliSE.dim_pe = 9
 
-    cfg.posenc_DiracRE.enable = False
-    cfg.posenc_DiracRE.dim_pe = 1
+    cfg.randenc_DiracRE.enable = False
+    cfg.randenc_DiracRE.dim_pe = 1
+
+    cfg.posenc_DiracFixedRE.enable = False
+    cfg.posenc_DiracFixedRE.dim_pe = 1
 
     for name in ["NormalRE", "NormalFixedRE", "UniformRE", "BernoulliRE"]:
         pecfg = getattr(cfg, f"posenc_{name}")

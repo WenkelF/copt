@@ -270,7 +270,7 @@ def load_dataset_master(format, name, dataset_dir):
             pe_name = key.split('_', 1)[1]
             randse_enabled_list.append(pe_name)
     if randse_enabled_list:
-        set_random_se(dataset, randse_enabled_list)
+        set_random_enc(dataset, randse_enabled_list)
 
     if cfg.virtual_node:
         set_virtual_node(dataset)
@@ -661,7 +661,7 @@ def get_unique_mol_graphs_via_smiles(
     return dataset
 
 
-def set_random_se(dataset, pe_types):
+def set_random_enc(dataset, pe_types):
 
     if 'FixedSE' in pe_types:
         def randomSE_Fixed(data):
@@ -699,6 +699,17 @@ def set_random_se(dataset, pe_types):
             return data
 
         dataset.transform_list = [randomSE_Bernoulli]
+
+    if 'DiracRE' in pe_types:
+        def randomRE_Dirac(data):
+            N = data.num_nodes
+            zeros = torch.zeros(N, cfg.randenc_DiracRE.dim_pe)
+            rand_idx = torch.randint(low=0, high=N, size=())
+            zeros[rand_idx] = 1.0
+            data.x = zeros.float()
+            return data
+
+        dataset.transform_list = [randomRE_Dirac]
 
 
 def set_virtual_node(dataset):
