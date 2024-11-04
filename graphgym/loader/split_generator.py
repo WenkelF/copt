@@ -127,6 +127,14 @@ def setup_random_split(dataset):
     test_index = val_test_index[test_index]
 
     set_dataset_splits(dataset, [train_index, val_index, test_index])
+    splits = {'train': train_index.tolist(), 'val': val_index.tolist(), 'test': test_index.tolist()}
+    fname = os.path.join(
+        cfg.dataset.split_dir,
+        f"{cfg.dataset.format}_{dataset.name}_random-{cfg.seed}.json"
+    )
+    with open(fname, "w") as outfile:
+        json.dump(splits, outfile)
+
 
 
 def set_dataset_splits(dataset, splits):

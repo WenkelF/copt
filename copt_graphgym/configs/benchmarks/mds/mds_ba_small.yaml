@@ -13,7 +13,7 @@ dataset:
   name: small
   task: graph
   # task_type: classification
-  split_mode: cv-kfold-5
+  split_mode: random
   split_dir: splits
   node_encoder: true
   node_encoder_name: GraphStats

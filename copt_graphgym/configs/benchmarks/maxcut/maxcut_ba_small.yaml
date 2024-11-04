@@ -5,14 +5,14 @@ num_workers: 4
 wandb:
   use: True
   name: test
-  project: copt-maxcut-ba-small-anneal
-  entity: horoiste
+  project: copt-maxcut-ba-small
+  entity: guy-wolf
 dataset:
   format: ba
   name: small
   task: graph
   # task_type: classification
-  split_mode: cv-kfold-5
+  split_mode: random
   split_dir: splits
   node_encoder: true
   node_encoder_name: RWSE
@@ -88,7 +88,7 @@ gnn:
     skip: true
 optim:
   base_lr: 0.001
-  max_epoch: 200
+  max_epoch: 300
   optimizer: adam
   weight_decay: 1e-5
   scheduler: cosine_with_warmup

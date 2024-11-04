@@ -12,7 +12,7 @@ dataset:
   name: large
   task: graph
   # task_type: classification
-  split_mode: cv-kfold-5
+  split_mode: random
   split_dir: splits
   node_encoder: true
   node_encoder_name: RWSE
@@ -58,7 +58,7 @@ train:
   ckpt_period: 100
   ckpt_best: true
 model:
-  type: hybrid_gnn
+  type: gnn
   loss_fun: maxcut_loss
   edge_decoding: dot
   graph_pooling: mean
@@ -69,7 +69,7 @@ gnn:
   layers_post_mp: 1
   dim_inner: 32
   layer_type: hybridconv-v2
-  stage_type: stack_concat
+  stage_type: skipsum
   batchnorm: true
   graphnorm: false
   l2norm: true
@@ -93,3 +93,8 @@ optim:
   weight_decay: 1e-5
   scheduler: cosine_with_warmup
   num_warmup_epochs: 50
+  entropy:
+    enable: false
+    scheduler: linear-energy
+    base_temp: 100.0
+    min_temp: 0.001

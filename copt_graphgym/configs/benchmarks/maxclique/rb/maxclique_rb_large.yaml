@@ -13,7 +13,7 @@ dataset:
   name: large
   task: graph
   # task_type: classification
-  split_mode: cv-kfold-5
+  split_mode: random
   split_dir: splits
   node_encoder: true
   node_encoder_name: GraphStats
@@ -53,7 +53,7 @@ train:
   mode: copt
   # compile: True
   task: maxclique
-  batch_size: 512
+  batch_size: 8
   eval_period: 1
   ckpt_period: 100
   ckpt_best: true
@@ -89,13 +89,18 @@ gnn:
     skip: true
 optim:
   base_lr: 0.001
-  max_epoch: 10
+  max_epoch: 100
   optimizer: adamW
   weight_decay: 0.0
   scheduler: cosine_with_warmup
   num_warmup_epochs: 5
+  entropy:
+    enable: false
+    scheduler: linear-energy
+    base_temp: 100.0
+    min_temp: 0.001
 maxclique_loss:
-  beta: 0.1
+  beta: 1.0
 metrics:
   maxclique:
     dec_length: 300
