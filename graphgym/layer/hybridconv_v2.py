@@ -279,7 +279,7 @@ class HybridConv_v2(MessagePassing):
                 f'{self.output_dim}, channel_list={self.channel_list})')
 
 
-@register_layer('hybridconv-v2')
+@register_layer('gcon')
 class HybridConvLayer(nn.Module):
     """HybridConv layer"""
 

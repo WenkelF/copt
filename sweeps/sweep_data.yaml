@@ -35,4 +35,4 @@ parameters:
   dataset.num_workers:
     value: 32
 
-program: main_graphgym.py
+program: main.py

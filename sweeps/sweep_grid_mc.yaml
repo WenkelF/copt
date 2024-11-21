@@ -27,7 +27,7 @@ parameters:
       # - LapPE+GraphStats
 
   gnn.layer_type:
-    value: hybridconv-v2
+    value: gcon
 
   gnn.layers_pre_mp:
     values:
@@ -106,4 +106,4 @@ parameters:
   optim.max_epoch:
     value: 20
   
-program: main_graphgym.py
+program: main.py

@@ -28,7 +28,7 @@ parameters:
 
   gnn.layer_type:
     values:
-      - hybridconv-v2
+      - gcon
       # - hybridconv-v3
 
   gnn.hybrid_v2.channel_list:
@@ -125,4 +125,4 @@ parameters:
   optim.max_epoch:
     value: 200
 
-program: main_graphgym.py
+program: main.py
