@@ -1,4 +1,5 @@
 from torch_geometric.graphgym.register import register_config
+from yacs.config import CfgNode as CN
 
 
 @register_config('extended_optim')
@@ -31,6 +32,12 @@ def extended_optim_cfg(cfg):
 
     # Step size for FLAG
     cfg.optim.flag_step_size = 0.001
+    
+    cfg.optim.entropy = CN()
+    cfg.optim.entropy.enable = False
+    cfg.optim.entropy.scheduler = "linear-energy"
+    cfg.optim.entropy.base_temp = 100.0
+    cfg.optim.entropy.min_temp = 0.001
 
     cfg.optim.train_mode = cfg.train.mode
-    cfg.optim.eval_period = cfg.train.val_period
+    cfg.optim.eval_period = cfg.train.eval_period
