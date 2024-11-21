@@ -21,7 +21,6 @@ PE_TYPES = [
     "LapPE",
     "RWSE",
     "SignNet",
-    "GPSE",
     "GraphLog",
     "BernoulliRE",
     "NormalRE",
