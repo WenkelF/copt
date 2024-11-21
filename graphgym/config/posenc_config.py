@@ -13,7 +13,6 @@ def set_cfg_posenc(cfg):
     cfg.posenc_HKdiagSE = CN()
     cfg.posenc_ElstaticPE = CN()
     cfg.posenc_EquivStableLapPE = CN()
-    cfg.posenc_GPSE = CN()
     cfg.posenc_GraphLog = CN()
     cfg.posenc_GraphStats = CN()
 
@@ -38,7 +37,7 @@ def set_cfg_posenc(cfg):
     cfg.graphenc_RWGE.enable = False
 
     # Common arguments to all PE types.
-    for name in ['posenc_LapPE', 'posenc_SignNet', 'posenc_RWSE', 'posenc_GPSE',
+    for name in ['posenc_LapPE', 'posenc_SignNet', 'posenc_RWSE',
                  'posenc_HKdiagSE', 'posenc_ElstaticPE', 'posenc_GraphLog', 'posenc_GraphStats']:
         pecfg = getattr(cfg, name)
 
@@ -71,16 +70,6 @@ def set_cfg_posenc(cfg):
     # Config for EquivStable LapPE
     cfg.posenc_EquivStableLapPE.enable = False
     cfg.posenc_EquivStableLapPE.raw_norm_type = 'none'
-
-    # Config for pretrained GNN P/SE encoder
-    cfg.posenc_GPSE.enable = False
-    cfg.posenc_GPSE.dataset = 'molpcba'
-    cfg.posenc_GPSE.inner_dim = 512
-    cfg.posenc_GPSE.model = 'Linear'
-    cfg.posenc_GPSE.layers = 2
-    cfg.posenc_GPSE.input_dropout_be = 0.3
-    cfg.posenc_GPSE.input_dropout_ae = 0.1
-
 
 
     # Multi MLP head hidden dimension. If None, set as the same as gnn.dim_inner

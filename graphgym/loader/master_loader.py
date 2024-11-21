@@ -16,22 +16,14 @@ import dimod
 import requests
 import torch
 import torch_geometric.transforms as T
-from numpy.random import default_rng
 from torch_geometric.datasets import (ZINC, GNNBenchmarkDataset, Planetoid,
                                       TUDataset, WikipediaNetwork, SNAPDataset)
-from torch_geometric.graphgym.config import cfg, set_cfg
-from torch_geometric.graphgym.loader import (load_ogb, load_pyg,
-                                             set_dataset_attr)
-from torch_geometric.graphgym.model_builder import GraphGymModule
+from torch_geometric.graphgym.config import cfg
+from torch_geometric.graphgym.loader import load_pyg
 from torch_geometric.graphgym.register import register_loader
-from torch_geometric.loader import DataLoader
 from torch_geometric.utils import from_smiles, to_networkx
-from torch_scatter import scatter_sum
-from tqdm import tqdm, trange
-from yacs.config import CfgNode as CN
+from tqdm import tqdm
 
-from graphgym.encoder.gnn_encoder import gpse_process_batch
-from graphgym.head.identity import IdentityHead
 from graphgym.loader.dataset.er_dataset import ERDataset
 from graphgym.loader.dataset.bp_dataset import BPDataset
 from graphgym.loader.dataset.rb_dataset import RBDataset
@@ -44,14 +36,11 @@ from graphgym.loader.split_generator import prepare_splits, set_dataset_splits
 from graphgym.transform.gnn_hash import GraphNormalizer, RandomGNNHash
 from graphgym.transform.posenc_stats import compute_posenc_stats
 from graphgym.transform.transforms import (VirtualNodePatchSingleton,
-                                           clip_graphs_to_size,
                                            concat_x_and_pos,
                                            pre_transform_in_memory, typecast_x)
-from graphgym.utils import get_device
 from graphgym.wl_dataset import ToyWLDataset
 
 from modules.data.data_generation import compute_degrees, compute_eccentricity, compute_triangle_count, compute_cluster_coefficient
-from gpse import GPSE, precompute_GPSE
 
 
 def log_loaded_dataset(dataset, format, name):
@@ -227,8 +216,7 @@ def load_dataset_master(format, name, dataset_dir):
     # Precompute necessary statistics for positional encodings.
     pe_enabled_list = []
     for key, pecfg in cfg.items():
-        if (key.startswith(('posenc_', 'graphenc_')) and pecfg.enable
-                and key != "posenc_GPSE"):  # GPSE handeled separately
+        if (key.startswith(('posenc_', 'graphenc_')) and pecfg.enable):
             pe_name = key.split('_', 1)[1]
             pe_enabled_list.append(pe_name)
             if hasattr(pecfg, 'kernel'):
@@ -291,12 +279,6 @@ def load_dataset_master(format, name, dataset_dir):
     # Verify or generate dataset train/val/test splits
     prepare_splits(dataset)
 
-    # Precompute GPSE if it is enabled
-    if cfg.posenc_GPSE.enable:
-        gpse_model = GPSE.from_pretrained(name=cfg.posenc_GPSE.dataset, root=os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), 'pretrained_gpse'))
-        precompute_GPSE(gpse_model, dataset)
-
     # Precompute GraphLog embeddings if it is enabled
     if cfg.posenc_GraphLog.enable:
         from graphgym.encoder.graphlog_encoder import precompute_graphlog
@@ -306,86 +288,6 @@ def load_dataset_master(format, name, dataset_dir):
 
     return dataset
 
-
-def gpse_io(
-    dataset,
-    mode: str = "save",
-    name: Optional[str] = None,
-    tag: Optional[str] = None,
-    auto_download: bool = True,
-):
-    assert tag, "Please provide a tag for saving/loading GPSE (e.g., '1.0')"
-    pse_dir = dataset.processed_dir
-    gpse_data_path = osp.join(pse_dir, f"gpse_{tag}_data.pt")
-    gpse_slices_path = osp.join(pse_dir, f"gpse_{tag}_slices.pt")
-
-    def maybe_download_gpse():
-        is_complete = osp.isfile(gpse_data_path) and osp.isfile(gpse_slices_path)
-        if is_complete or not auto_download:
-            return
-
-        if name is None:
-            raise ValueError("Please specify the dataset name for downloading.")
-
-        if tag != "1.0":
-            raise ValueError(f"Invalid tag {tag!r}, currently only support '1.0")
-        # base_url = "https://sandbox.zenodo.org/record/1219850/files/"  # 1.0.dev
-        base_url = "https://zenodo.org/record/8145344/files/"  # 1.0
-        fname = f"{name}_{tag}.zip"
-        url = urljoin(base_url, fname)
-        save_path = osp.join(pse_dir, fname)
-
-        # Stream download
-        with requests.get(url, stream=True) as r:
-            if r.ok:
-                total_size_in_bytes = int(r.headers.get("content-length", 0))
-                pbar = tqdm(
-                    total=total_size_in_bytes,
-                    unit="iB",
-                    unit_scale=True,
-                    desc=f"Downloading {url}",
-                )
-                with open(save_path, "wb") as file:
-                    for data in r.iter_content(1024):
-                        pbar.update(len(data))
-                        file.write(data)
-                pbar.close()
-
-            else:
-                meta_url = base_url.replace("/record/", "/api/records/")
-                meta_url = meta_url.replace("/files/", "")
-                meta_r = requests.get(meta_url)
-                if meta_r.ok:
-                    files = meta_r.json()["files"]
-                    opts = [i["key"].rsplit(".zip")[0] for i in files]
-                else:
-                    opts = []
-
-                opts_str = "\n".join(sorted(opts))
-                raise requests.RequestException(
-                    f"Fail to download from {url} ({r!r}). Available options "
-                    f"for {tag=!r} are:\n{opts_str}",
-                )
-
-        # Unzip files and cleanup
-        logging.info(f"Extracting {save_path}")
-        with zipfile.ZipFile(save_path, "r") as f:
-            f.extractall(pse_dir)
-        os.remove(save_path)
-
-    if mode == "save":
-        torch.save(dataset.data.pestat_GPSE, gpse_data_path)
-        torch.save(dataset.slices["pestat_GPSE"], gpse_slices_path)
-        logging.info(f"Saved pre-computed GPSE ({tag}) to {pse_dir}")
-
-    elif mode == "load":
-        maybe_download_gpse()
-        dataset.data.pestat_GPSE = torch.load(gpse_data_path, map_location="cpu")
-        dataset.slices["pestat_GPSE"] = torch.load(gpse_slices_path, map_location="cpu")
-        logging.info(f"Loaded pre-computed GPSE ({tag}) from {pse_dir}")
-
-    else:
-        raise ValueError(f"Unknown io mode {mode!r}.")
 
 def preformat_GNNBenchmarkDataset(dataset_dir, name):
     """Load and preformat datasets from PyG's GNNBenchmarkDataset.

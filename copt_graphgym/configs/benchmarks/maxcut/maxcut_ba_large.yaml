@@ -44,8 +44,6 @@ posenc_GraphStats:
   model: Linear
   dim_pe: 32
   raw_norm_type: none
-posenc_GPSE:
-  enable: false
 posenc_NormalRE:
   enable: false
   dim_pe: 16
