@@ -27,7 +27,7 @@ parameters:
       # - LapPE+GraphStats
 
   gnn.layer_type:
-    value: hybridconv-v2
+    value: gcon
 
   gnn.layers_pre_mp:
     values:

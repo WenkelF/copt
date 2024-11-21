@@ -10,7 +10,18 @@ _Accepted as Spotlight at Learning on Graphs (LoG) 2024_
 
 ## Installation
 
+For `conda`, using the `environment.yml` file:
+```bash
+conda env create -f environment.yml
 ```
+
+For `pip`, using `requirements.txt`:
+```bash
+pip install -r requirements.txt
+```
+
+Alternatively, you can install the packages manually via `conda`:
+```bash
 conda create -n copt python=3.10
 conda activate copt
 
@@ -25,7 +36,28 @@ pip install yacs einops loguru dwave-networkx ogb performer-pytorch wandb
 
 ## Quick start
 
-This codebase is built on top of [PyG GraphGym](https://pytorch-geometric.readthedocs.io/en/2.0.0/notes/graphgym.html).
+This codebase is built on top of [PyG GraphGym](https://pytorch-geometric.readthedocs.io/en/2.0.0/notes/graphgym.html), and uses configuration files to run experiments.
+The default GCON configurations are found in `configs/benchmarks/{TASK_NAME}`. E.g., to run GCON for MCut on BA-small:
+```bash
+python main.py --cfg configs/benchmarks/maxclique/maxclique_rb_small.yaml
+```
+
+To use the non-decoupled architecture, override the `gcon` layer in the default config with the `hybridconv` convolution:
+```bash
+python main.py --cfg configs/benchmarks/maxclique/maxclique_rb_small.yaml gnn.layer_type=hybridconv
+```
+
+The Erdos' GNN configurations are denoted with an `-erdos` suffix:
+```bash
+python main.py --cfg configs/benchmarks/maxclique/maxclique_rb_small-erdos.yaml
+```
+
+To use Erdos' GNN with entropy annealing, use the `optim.entropy.enable` flag:
+```bash
+python main.py --cfg configs/benchmarks/maxclique/maxclique_rb_small-erdos.yaml optim.entropy.enable=True
+```
+
+You can use your WandB account for logging by setting `wandb.entity` to your own entity. You can also use local-only logging by setting `wandb.use=False`.
 
 ## Citation
 

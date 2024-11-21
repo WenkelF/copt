@@ -68,7 +68,7 @@ gnn:
   layers_mp: 20
   layers_post_mp: 2
   dim_inner: 32
-  layer_type: hybridconv-v2
+  layer_type: gcon
   stage_type: stack_concat
   batchnorm: true
   graphnorm: false

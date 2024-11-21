@@ -28,7 +28,7 @@ parameters:
 
   gnn.layer_type:
     values:
-      - hybridconv-v2
+      - gcon
       # - hybridconv-v3
 
   gnn.hybrid_v2.channel_list:
