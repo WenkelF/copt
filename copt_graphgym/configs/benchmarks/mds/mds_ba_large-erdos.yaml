@@ -20,36 +20,6 @@ dataset:
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
   label: false
-posenc_LapPE:
-  enable: false
-  eigen:
-    laplacian_norm: none
-    eigvec_norm: L2
-    max_freqs: 4
-    skip_zero_freq: true
-    eigvec_abs: true
-  model: DeepSet
-  dim_pe: 32
-  layers: 2
-  n_heads: 4  # Only used when `posenc.model: Transformer`
-  raw_norm_type: none
-posenc_RWSE:
-  enable: false
-  kernel:
-    times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
-  model: Linear
-  dim_pe: 32
-  raw_norm_type: BatchNorm
-posenc_GraphStats:
-  enable: false
-  model: Linear
-  dim_pe: 256
-  raw_norm_type: none
-posenc_GPSE:
-  enable: false
-posenc_NormalRE:
-  enable: false
-  dim_pe: 16
 randenc_DiracRE:
   enable: true
 train:
@@ -68,16 +38,16 @@ model:
 gnn:
   head: copt_inductive_node
   layers_pre_mp: 1
-  layers_post_mp: 2
+  layers_mp: 16
+  layers_post_mp: 1
+  dim_inner: 256
   layer_type: erdosginconv
-  stage_type: skipsum
-  layers_mp: 6
-  dim_inner: 64
+  stage_type: skipsum_concat
   batchnorm: true
   graphnorm: false
   l2norm: true
-  norm_by_graph: false
-  act: gelu
+  gsn: true
+  act: lrelu_001
   last_act: sigmoid
   last_norm: null
   dropout: 0.3

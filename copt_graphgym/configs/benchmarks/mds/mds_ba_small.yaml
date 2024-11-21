@@ -43,7 +43,7 @@ posenc_RWSE:
 posenc_GraphStats:
   enable: true
   model: Linear
-  dim_pe: 32
+  dim_pe: 256
   raw_norm_type: none
 posenc_GPSE:
   enable: false
@@ -59,7 +59,7 @@ train:
   ckpt_period: 100
   ckpt_best: true
 model:
-  type: hybrid_gnn
+  type: gnn
   loss_fun: mds_loss
   edge_decoding: dot
   graph_pooling: mean
@@ -68,13 +68,13 @@ gnn:
   layers_pre_mp: 1
   layers_mp: 16
   layers_post_mp: 1
-  dim_inner: 32
+  dim_inner: 256
   layer_type: hybridconv-v2
-  stage_type: stack_concat
+  stage_type: skipsum
   batchnorm: true
   graphnorm: false
   l2norm: true
-  norm_by_graph: false
+  gsn: false
   act: lrelu_03
   last_act: sigmoid
   last_norm: null
@@ -95,3 +95,6 @@ optim:
   weight_decay: 1e-5
   scheduler: cosine_with_warmup
   num_warmup_epochs: 5
+metrics:
+  mds:
+    num_seeds: 1

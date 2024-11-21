@@ -6,11 +6,11 @@ num_workers: 4
 wandb:
   use: True
   name: test
-  project: copt-maxclique-rb-large
+  project: copt-maxclique-rb-small
   entity: guy-wolf
 dataset:
   format: rb
-  name: large
+  name: small
   task: graph
   # task_type: classification
   split_mode: random
@@ -73,8 +73,8 @@ gnn:
   batchnorm: true
   graphnorm: false
   l2norm: false
-  norm_by_graph: true
-  act: lrelu_001
+  gsn: true
+  act: lrelu_03
   last_act: null
   last_norm: minmax
   dropout: 0.3
@@ -93,7 +93,7 @@ optim:
   optimizer: adamW
   weight_decay: 0.0
   scheduler: cosine_with_warmup
-  num_warmup_epochs: 5
+  num_warmup_epochs: 0
   entropy:
     enable: false
     scheduler: linear-energy
