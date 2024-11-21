@@ -39,5 +39,5 @@ def extended_optim_cfg(cfg):
     cfg.optim.entropy.base_temp = 100.0
     cfg.optim.entropy.min_temp = 0.001
 
-    # cfg.optim.train_mode = cfg.train.mode
+    cfg.optim.train_mode = cfg.train.mode
     cfg.optim.eval_period = cfg.train.eval_period
