@@ -113,4 +113,4 @@ parameters:
   optim.max_epoch:
     value: 30
 
-program: main_graphgym.py
+program: main.py

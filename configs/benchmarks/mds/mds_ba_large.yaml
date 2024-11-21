@@ -6,11 +6,11 @@ dim_out: 1
 wandb:
   use: True
   name: test
-  project: copt-mds-ba-small
+  project: copt-mds-ba-large
   entity: guy-wolf
 dataset:
   format: ba
-  name: small
+  name: large
   task: graph
   # task_type: classification
   split_mode: random
@@ -43,10 +43,8 @@ posenc_RWSE:
 posenc_GraphStats:
   enable: true
   model: Linear
-  dim_pe: 256
+  dim_pe: 256 
   raw_norm_type: none
-posenc_GPSE:
-  enable: false
 posenc_NormalRE:
   enable: false
   dim_pe: 16
@@ -75,7 +73,7 @@ gnn:
   graphnorm: false
   l2norm: true
   gsn: false
-  act: lrelu_03
+  act: gelu
   last_act: sigmoid
   last_norm: null
   dropout: 0.3

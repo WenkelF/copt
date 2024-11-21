@@ -67,7 +67,7 @@ class DiracRENodeEncoder(RandomNodeEncoder):
 
     def __init__(self, dim_emb, expand_x: bool = False):
         super().__init__(dim_emb, expand_x)
-        device = get_device(cfg.posenc_GPSE.accelerator, cfg.accelerator)
+        device = get_device(cfg.posenc_LapPE.accelerator, cfg.accelerator)
         self.encoder = torch.nn.Linear(cfg.posenc_DiracFixedRE.dim_pe, dim_emb).to(device)
 
     def generator(self, num_nodes: int, device: str) -> torch.Tensor:
