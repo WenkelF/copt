@@ -724,7 +724,7 @@ def compute_graph_stats(data):
         g = g.to_undirected()
     # Derive adjacency matrix
     adj = torch.from_numpy(nx.to_numpy_array(g))
-    norm_factor = np.sqrt(g.number_of_nodes()) if cfg.gnn.norm_by_graph else 1
+    norm_factor = np.sqrt(g.number_of_nodes()) if cfg.gnn.gsn else 1
 
     if 'degree' in cfg.dataset.graph_stats:
         data.degree = compute_degrees(adj, log_transform=True)[0] / norm_factor

@@ -1,11 +1,10 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch_geometric.nn as pyg_nn
 
+from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.models.layer import LayerConfig
 from torch_geometric.graphgym.register import register_layer
-from torch_geometric.nn import Linear as Linear_pyg, GraphSizeNorm
+from torch_geometric.nn import Linear as Linear_pyg, GraphSizeNorm, Linear
 from torch_scatter import scatter_add
 
 
@@ -37,7 +36,7 @@ class ErdosGINConvGraphGymLayer(nn.Module):
             Linear_pyg(2 * layer_config.dim_out, layer_config.dim_out), nn.ReLU(),
             nn.BatchNorm1d(layer_config.dim_out, eps=layer_config.bn_eps, momentum=layer_config.bn_mom))
         self.model = pyg_nn.GINConv(gin_nn)
-        self.gnorm = GraphSizeNorm()
+        self.gsn = GraphSizeNorm()
 
     def forward(self, batch):
         try:
@@ -48,5 +47,39 @@ class ErdosGINConvGraphGymLayer(nn.Module):
         batch.x = self.model(batch.x, batch.edge_index, batch.edge_attr)
 
         batch.x = batch.x * batch.mask
-        batch.x = self.gnorm(batch.x)
+        if cfg.gnn.gsn:
+            batch.x = self.gsn(batch.x, batch.batch, batch.num_nodes)
+        return batch
+
+
+@register_layer('erdosgatconv')
+class ErdosGATConvGraphGymLayer(nn.Module):
+    """Graph Isomorphism Network with Edge features (GINE) layer double hidden.
+
+    The doubled hidden dimension in MLP follows the
+    `"Strategies for Pre-training Graph Neural Networks"
+    <https://arxiv.org/abs/1905.12265>`_ paper
+    """
+    def __init__(self, layer_config: LayerConfig, **kwargs):
+        super().__init__()
+        self.model = pyg_nn.GATConv(layer_config.dim_in, layer_config.dim_out, heads=cfg.gnn.att_heads, concat=True)
+        self.linear = Linear(cfg.gnn.att_heads * layer_config.dim_out, layer_config.dim_out)
+        self.gsn = GraphSizeNorm()
+
+    def forward(self, batch):
+        try:
+            batch.mask = get_mask(batch.mask, batch.edge_index, 1).to(batch.x.dtype)
+        except:
+            batch.mask = get_mask(batch.x, batch.edge_index, 1).to(batch.x.dtype)
+
+        batch.x = self.model(batch.x, batch.edge_index, batch.edge_attr)
+
+        if cfg.gnn.att_heads > 1:
+            batch.mask.unsqueeze_(1)
+            batch.mask = batch.mask.expand(-1, cfg.gnn.att_heads, -1)
+            batch.mask = batch.mask.reshape(-1, batch.mask.shape[1] * batch.mask.shape[2])
+
+        batch.x = self.linear(batch.x * batch.mask)
+        if cfg.gnn.gsn:
+            batch.x = self.gsn(batch.x, batch.batch, batch.num_nodes)
         return batch
