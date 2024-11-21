@@ -5,50 +5,22 @@ num_workers: 4
 wandb:
   use: True
   name: test
-  project: copt-maxcut-ba-large
+  project: copt-maxcut-ba-small
   entity: guy-wolf
 dataset:
   format: ba
-  name: large
+  name: small
   task: graph
   # task_type: classification
   split_mode: random
   split_dir: splits
-  node_encoder: true
+  node_encoder: false
   node_encoder_name: RWSE
   graph_stats: ['degree', 'eccentricity', 'cluster_coefficient', 'triangle_count']
   multiprocessing: true
   label: false
-posenc_LapPE:
-  enable: false
-  eigen:
-    laplacian_norm: none
-    eigvec_norm: L2
-    max_freqs: 4
-    skip_zero_freq: true
-    eigvec_abs: true
-  model: DeepSet
-  dim_pe: 32
-  layers: 2
-  n_heads: 4  # Only used when `posenc.model: Transformer`
-  raw_norm_type: none
-posenc_RWSE:
+randenc_DiracRE:
   enable: true
-  kernel:
-    times_func: range(2,22)  # if no self-loop, then RWSE1 will be all zeros
-  model: Linear
-  dim_pe: 32
-  raw_norm_type: BatchNorm
-posenc_GraphStats:
-  enable: false
-  model: Linear
-  dim_pe: 32
-  raw_norm_type: none
-posenc_GPSE:
-  enable: false
-posenc_NormalRE:
-  enable: false
-  dim_pe: 16
 train:
   mode: copt
   # compile: True
@@ -58,37 +30,30 @@ train:
   ckpt_period: 100
   ckpt_best: true
 model:
-  type: gnn
+  type: hybrid_gnn
   loss_fun: maxcut_loss
   edge_decoding: dot
   graph_pooling: mean
 gnn:
   head: copt_inductive_node
-  layers_pre_mp: 4
+  layers_pre_mp: 1
   layers_mp: 16
   layers_post_mp: 1
   dim_inner: 32
-  layer_type: hybridconv-v2
-  stage_type: skipsum
+  layer_type: erdosginconv
+  stage_type: skipsum_concat_erdos
   batchnorm: true
   graphnorm: false
-  l2norm: true
-  gsn: false
-  act: lrelu_03
+  l2norm: false
+  gsn: true
+  act: lrelu_001
   last_act: sigmoid
   dropout: 0.3
   agg: mean
   normalize_adj: false
-  hybrid:
-    activation_att1: elu
-    activation_att2: elu
-    activation: elu
-    combine_fn: att_bias
-  hybrid_v2:
-    skip: true
 optim:
   base_lr: 0.001
-  max_epoch: 400
+  max_epoch: 300
   optimizer: adam
   weight_decay: 1e-5
   scheduler: cosine_with_warmup

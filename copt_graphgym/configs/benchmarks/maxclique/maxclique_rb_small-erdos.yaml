@@ -1,0 +1,74 @@
+---
+out_dir: results
+dim_out: 1
+metric_best: mae
+num_workers: 4
+wandb:
+  use: True
+  name: test
+  project: copt-maxclique-rb-small
+  entity: guy-wolf
+dataset:
+  format: rb
+  name: small
+  task: graph
+  # task_type: classification
+  split_mode: random
+  split_dir: splits
+  node_encoder: false
+  node_encoder_name: GraphStats
+  node_encoder_bn: false
+  graph_stats: ['degree', 'cluster_coefficient', 'triangle_count']
+  multiprocessing: false
+  label: false
+randenc_DiracRE:
+  enable: true
+train:
+  mode: copt
+  # compile: True
+  task: maxclique
+  batch_size: 8
+  eval_period: 1
+  ckpt_period: 100
+  ckpt_best: true
+model:
+  type: hybrid_gnn
+  loss_fun: maxclique_loss
+  edge_decoding: dot
+  graph_pooling: mean
+gnn:
+  head: copt_inductive_node
+  layers_pre_mp: 1
+  layers_mp: 20
+  layers_post_mp: 2
+  dim_inner: 32
+  layer_type: erdosginconv
+  stage_type: skipsum_concat
+  batchnorm: true
+  graphnorm: false
+  l2norm: false
+  gsn: true
+  act: lrelu_001
+  last_act: null
+  last_norm: minmax
+  dropout: 0.3
+  agg: mean
+  normalize_adj: false
+optim:
+  base_lr: 0.001
+  max_epoch: 100
+  optimizer: adamW
+  weight_decay: 0.0
+  scheduler: cosine_with_warmup
+  num_warmup_epochs: 5
+  entropy:
+    enable: false
+    scheduler: linear-energy
+    base_temp: 100.0
+    min_temp: 0.001
+maxclique_loss:
+  beta: 1.0
+metrics:
+  maxclique:
+    dec_length: 300
+    num_seeds: 10

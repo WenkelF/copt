@@ -12,7 +12,7 @@ dataset:
   name: small
   task: graph
   # task_type: classification
-  split_mode: cv-kfold-5
+  split_mode: random
   split_dir: splits
   node_encoder: true
   node_encoder_name: RWSE
@@ -73,7 +73,7 @@ gnn:
   batchnorm: true
   graphnorm: false
   l2norm: false
-  norm_by_graph: false
+  gsn: false
   act: lrelu_03
   last_act: sigmoid
   dropout: 0.3
@@ -88,8 +88,13 @@ gnn:
     skip: true
 optim:
   base_lr: 0.001
-  max_epoch: 200
+  max_epoch: 300
   optimizer: adam
   weight_decay: 1e-5
   scheduler: cosine_with_warmup
   num_warmup_epochs: 50
+  entropy:
+    enable: false
+    scheduler: linear-energy
+    base_temp: 1.0
+    min_temp: 0.001

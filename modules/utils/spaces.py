@@ -6,24 +6,16 @@ from torch.optim import SGD, Adam
 from modules.architecture.models import GCN, GAT, ScGCN
 from modules.architecture.models_pyg import PygGCN
 
+from graphgym.loss.copt_loss import (maxcut_loss, maxcut_mae,
+                                     maxcut_loss_pyg, maxcut_mae_pyg,
+                                     maxclique_loss, maxclique_loss_pyg)
 from utils.norms import min_max_norm, min_max_norm_pyg
 
 from utils.metrics import (
-    maxcut_loss,
-    maxcut_mae,
-    maxcut_acc,
-    maxcut_loss_pyg,
-    maxcut_mae_pyg,
-    maxcut_acc_pyg,
-    maxcut_size_pyg,
-    maxclique_loss,
-    maxclique_ratio,
-    maxclique_loss_pyg,
-    maxclique_size_pyg,
-    maxclique_ratio_pyg,
+    maxcut_acc, maxcut_acc_pyg, maxcut_size_pyg,
+    maxclique_ratio, maxclique_size_pyg, maxclique_ratio_pyg,
     plantedclique_acc_pyg,
-    mds_size_pyg,
-    mds_acc_pyg,
+    mds_size_pyg, mds_acc_pyg,
     mis_size_pyg,
 )
 

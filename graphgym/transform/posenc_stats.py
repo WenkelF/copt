@@ -26,6 +26,8 @@ PE_TYPES = [
     "BernoulliRE",
     "NormalRE",
     "NormalFixedRE",
+    "DiracRE",
+    "DiracFixedRE",
     "UniformRE",
     "GraphStats"
 ]
