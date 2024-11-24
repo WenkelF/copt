@@ -1,4 +1,4 @@
-# Towards a GNN Framework for Combinatorial Optimization Problems
+# Towards a General Recipe for Combinatorial Optimization with Multi-Filter GNNs
 
 ### [Frederik Wenkel*](https://wenkelf.github.io/), [Semih Cantürk*](https://semihcanturk.github.io/), [Stefan Horoi](https://shoroi.github.io/), [Michael Perlmutter](https://sites.google.com/view/perlmutma/home), [Guy Wolf](https://guywolf.org/)
 
